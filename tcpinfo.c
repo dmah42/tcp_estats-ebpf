@@ -49,7 +49,6 @@ struct sock {
  **/
 struct tcp_sock {
 	__u32 srtt_us;
-	__u32 rttvar;
 	__u32 total_retrans;
 } __attribute__((preserve_access_index));
 
@@ -70,7 +69,6 @@ struct sample {
 	__u16 sport;
 	__u16 dport;
 	__u32 srtt;
-	__u32 rtt_var;
 	__u32 total_retrans;
 };
 
@@ -94,7 +92,6 @@ int BPF_PROG(tcp_close, struct sock *sk) {
 	tcp_info->dport = bpf_ntohs(sk->__sk_common.skc_dport);
 
 	tcp_info->srtt = (ts->srtt_us >> 3) / 1000;
-	tcp_info->rtt_var = ts->rttvar;
 	tcp_info->total_retrans = ts->total_retrans;
 
 	bpf_ringbuf_submit(tcp_info, 0);

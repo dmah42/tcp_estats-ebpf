@@ -20,6 +20,10 @@ clean:
 	-@rm tcpinfo_bpfe*.go
 	-@rm tcpinfo_bpfe*.o
 
+.PHONY: run
+run: build
+	sudo ./$(OUTPUT)
+
 $(OUTPUT): tcpinfo_bpfel.go tcpinfo_bpfeb.go main.go endian/endian.go
 	CGO_ENABLED=1 go build -o $@
 

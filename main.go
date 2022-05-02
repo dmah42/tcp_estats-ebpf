@@ -23,7 +23,6 @@ import (
 )
 
 const (
-	formatStr = "%-15s %-6s -> %-15s %-6s %-6s %-6s %-6s %-6s"
 )
 
 func main() {
@@ -56,7 +55,8 @@ func main() {
 	}
 	defer rd.Close()
 
-	log.Printf(formatStr, "src", "sport", "dest", "dport", "rtt", "rtt_var", "total_retrans")
+	formatStr := "%-15s %-6s -> %-15s %-6s [%-6s %-8s]"
+	log.Printf(formatStr, "src", "sport", "dest", "dport", "rtt", "retrans")
 
 	go readLoop(rd)
 
@@ -70,7 +70,6 @@ type sample struct {
 	Sport		uint16
 	Dport		uint16
 	Srtt		uint32
-	RttVar		uint32
 	TotalRetrans	uint32
 };
 
@@ -93,7 +92,8 @@ func readLoop(rd *ringbuf.Reader) {
 			continue
 		}
 
-		log.Printf(formatStr, intToIP(sample.Saddr), sample.Sport, intToIP(sample.Daddr), sample.Dport, sample.Srtt, sample.RttVar, sample.TotalRetrans)
+		formatStr := "%-15s %-6d -> %-15s %-6d [%-6d %-6d]"
+		log.Printf(formatStr, intToIP(sample.Saddr), sample.Sport, intToIP(sample.Daddr), sample.Dport, sample.Srtt, sample.TotalRetrans)
 	}
 }
 
