@@ -1,4 +1,4 @@
-module tcpinfo-ebpf
+module tcp_estats-ebpf
 
 go 1.17
 

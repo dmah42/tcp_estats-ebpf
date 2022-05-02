@@ -1,7 +1,7 @@
 //go:build linux
 // +build linux
 
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go --strip llvm-strip-12 --cflags "-Wall -Werror" tcpinfo tcpinfo.c
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go --strip llvm-strip-12 --cflags "-Wall -Werror" tcp_estats tcp_estats.c
 
 package main
 
@@ -19,7 +19,7 @@ import (
 	"github.com/cilium/ebpf/ringbuf"
 	"github.com/cilium/ebpf/rlimit"
 
-	"tcpinfo-ebpf/endian"
+	"tcp_estats-ebpf/endian"
 )
 
 const (
@@ -34,7 +34,7 @@ func main() {
 	}
 
 	// load pre-compiled programs into the kernel
-	objs := tcpinfoObjects{}
+	objs := tcp_estatsObjects{}
 	if err := loadTcpinfoObjects(&objs, nil); err != nil {
 		log.Fatalf("loading objects: %v", err)
 	}
@@ -42,14 +42,14 @@ func main() {
 
 	// TODO: how to attach to multiple points
 	link, err := link.AttachTracing(link.TracingOptions{
-		Program: objs.tcpinfoPrograms.TcpClose,
+		Program: objs.tcp_estatsPrograms.TcpClose,
 	})
 	if err != nil {
 		log.Fatalf("attaching tracing: %v", err)
 	}
 	defer link.Close()
 
-	rd, err := ringbuf.NewReader(objs.tcpinfoMaps.Samples)
+	rd, err := ringbuf.NewReader(objs.tcp_estatsMaps.Samples)
 	if err != nil {
 		log.Fatalf("opening ringbuf reader: %v", err)
 	}
@@ -63,7 +63,7 @@ func main() {
 	<-stopper
 }
 
-// Mirror of `sample` in tcpinfo.c
+// Mirror of `sample` in tcp_estats.c
 type sample struct {
 	Saddr		uint32
 	Daddr		uint32
