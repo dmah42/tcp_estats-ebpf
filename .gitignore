@@ -6,6 +6,8 @@
 *.dylib
 *.o
 tcpinfo_ebpf
+tcpinfo_ebpfeb.go
+tcpinfo_ebpfel.go
 
 # Test binary, built with `go test -c`
 *.test
