@@ -21,10 +21,11 @@ clean:
 	-@rm tcpinfo_bpfe*.o
 
 $(OUTPUT): tcpinfo_bpfel.go tcpinfo_bpfeb.go main.go endian/endian.go
-	CGO_ENABLED=1 go build -o $<
+	CGO_ENABLED=1 go build -o $@
 
 tcpinfo_bpfe%.go: tcpinfo.c
 	go generate main.go
+	-@rm tcpinfo_bpfe*.o
 
 go.sum:
 	go mod download github.com/cilium/ebpf

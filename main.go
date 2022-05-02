@@ -63,8 +63,19 @@ func main() {
 	<-stopper
 }
 
+// Mirror of `sample` in tcpinfo.c
+type sample struct {
+	Saddr		uint32
+	Daddr		uint32
+	Sport		uint16
+	Dport		uint16
+	Srtt		uint32
+	RttVar		uint32
+	TotalRetrans	uint32
+};
+
 func readLoop(rd *ringbuf.Reader) {
-	var sample tcpinfoSample
+	var sample sample
 	for {
 		record, err := rd.Read()
 		if err != nil {
