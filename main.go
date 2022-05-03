@@ -55,9 +55,6 @@ func main() {
 
 	estats := tcp_estats.Estats{}
 
-	formatStr := "%-15s %-6s -> %-15s %-6s [%-6s %-8s]"
-	log.Printf(formatStr, "src", "sport", "dest", "dport", "rtt", "retrans")
-
 	go readLoop(rd, &estats)
 
 	<-stopper
@@ -97,8 +94,6 @@ func readLoop(rd *ringbuf.Reader, t *tcp_estats.Estats) {
 			continue
 		}
 
-		formatStr := "%-15s %-6d -> %-15s %-6d [%-6d %-6d]"
-		log.Printf(formatStr, intToIP(entry.Key.Saddr), entry.Key.Sport, intToIP(entry.Key.Daddr), entry.Key.Dport)
 		log.Printf("%+v", entry)
 	}
 }
