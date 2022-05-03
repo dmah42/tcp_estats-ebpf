@@ -1,10 +1,10 @@
 OUTPUT=tcp_estats_ebpf
 
 .PHONY: build
-build: clean gen $(OUTPUT)
+build: gen $(OUTPUT)
 
 .PHONY: gen
-gen: tcp_estats_bpfel.go tcp_estats_bpfeb.go
+gen: tcpestats_bpfel.go tcpestats_bpfeb.go
 	go generate main.go
 
 .PHONY: sum
@@ -17,19 +17,19 @@ fmt: sum
 .PHONY: clean
 clean:
 	-@rm $(OUTPUT)
-	-@rm tcp_estats_bpfe*.go
-	-@rm tcp_estats_bpfe*.o
+	-@rm tcpestats_bpfe*.go
+	-@rm tcpestats_bpfe*.o
 
 .PHONY: run
 run: build
 	sudo ./$(OUTPUT)
 
-$(OUTPUT): tcp_estats_bpfel.go tcp_estats_bpfeb.go main.go endian/endian.go
+$(OUTPUT): tcpestats_bpfel.go tcpestats_bpfeb.go main.go endian/endian.go tcp_estats/*.go
 	CGO_ENABLED=1 go build -o $@
 
-tcp_estats_bpfe%.go: tcp_estats.c
+tcpestats_bpfe%.go: tcp_estats.c tcp_estats.h
 	go generate main.go
-	-@rm tcp_estats_bpfe*.o
+	-@rm tcpestats_bpfe*.o
 
 go.sum:
 	go mod download github.com/cilium/ebpf
