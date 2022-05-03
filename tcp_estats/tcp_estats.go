@@ -14,88 +14,124 @@ const (
 	OPERATION_DEC           = iota
 )
 
-type Variable int
+type GlobalVar int
 
 const (
-	GLOBAL_TABLE_LIMSTATE    Variable = iota
-	GLOBAL_TABLE_LIMSTATE_TS          = iota
-	GLOBAL_TABLE_START_TS             = iota
-	GLOBAL_TABLE_CURRENT_TS           = iota
-	GLOBAL_TABLE_START_TV             = iota
+	GLOBAL_TABLE_LIMSTATE    GlobalVar = iota
+	GLOBAL_TABLE_LIMSTATE_TS           = iota
+	GLOBAL_TABLE_START_TS              = iota
+	GLOBAL_TABLE_CURRENT_TS            = iota
+	GLOBAL_TABLE_START_TV              = iota
+)
 
-	CONNECTION_TABLE_ADDRESS_TYPE   = iota
-	CONNECTION_TABLE_LOCAL_ADDRESS  = iota
-	CONNECTION_TABLE_REMOTE_ADDRESS = iota
-	CONNECTION_TABLE_LOCAL_PORT     = iota
-	CONNECTION_TABLE_REMOTE_PORT    = iota
+type ConnectionVar int
 
-	PERF_TABLE_SEGSOUT = iota
+const (
+	CONNECTION_TABLE_ADDRESS_TYPE   ConnectionVar = iota
+	CONNECTION_TABLE_LOCAL_ADDRESS                = iota
+	CONNECTION_TABLE_REMOTE_ADDRESS               = iota
+	CONNECTION_TABLE_LOCAL_PORT                   = iota
+	CONNECTION_TABLE_REMOTE_PORT                  = iota
+)
+
+type PerfVar int
+
+const (
+	PERF_TABLE_SEGSOUT PerfVar = iota
 	// TODO: more perf
+)
 
-	PATH_TABLE_NONRECOVDAEPISODES = iota
-	PATH_TABLE_SUMOCTETSREORDERED = iota
-	PATH_TABLE_NONRECOVDA         = iota
-	PATH_TABLE_SAMPLERTT          = iota
-	PATH_TABLE_MAXRTT             = iota
-	PATH_TABLE_MINRTT             = iota
-	PATH_TABLE_SUMRTT             = iota
-	PATH_TABLE_COUNTRTT           = iota
-	PATH_TABLE_MAXRTO             = iota
-	PATH_TABLE_MINRTO             = iota
-	PATH_TABLE_PTTL               = iota
-	PATH_TABLE_PTOSIN             = iota
-	PATH_TABLE_PRECONGSUMCWND     = iota
-	PATH_TABLE_PRECONGSUMRTT      = iota
-	PATH_TABLE_POSTCONGSUMRTT     = iota
-	PATH_TABLE_POSTCONGCOUNTRTT   = iota
-	PATH_TABLE_ECNSIGNALS         = iota
-	PATH_TABLE_DUPACKEPISODES     = iota
-	PATH_TABLE_DUPACKSOUT         = iota
-	PATH_TABLE_CERCVD             = iota
-	PATH_TABLE_ECESENT            = iota
+type PathVar int
 
-	STACK_TABLE_ACTIVEOPEN          = iota
-	STACK_TABLE_MAXSSCWND           = iota
-	STACK_TABLE_MAXCACWND           = iota
-	STACK_TABLE_MAXSSTHRESH         = iota
-	STACK_TABLE_MINSSTHRESH         = iota
-	STACK_TABLE_DUPACKSIN           = iota
-	STACK_TABLE_SPURIOUSFRDETECTED  = iota
-	STACK_TABLE_SPURIOUSRTODETECTED = iota
-	STACK_TABLE_SOFTERRORS          = iota
-	STACK_TABLE_SOFTERRORREASON     = iota
-	STACK_TABLE_SLOWSTART           = iota
-	STACK_TABLE_CONGAVOID           = iota
-	STACK_TABLE_OTHERREDUCTIONS     = iota
-	STACK_TABLE_CONGOVERCOUNT       = iota
-	STACK_TABLE_FASTRETRAN          = iota
-	STACK_TABLE_SUBSEQUENTTIMEOUTS  = iota
-	STACK_TABLE_ABRUPTTIMEOUTS      = iota
-	STACK_TABLE_SACKSRCVD           = iota
-	STACK_TABLE_SACKBLOCKSRCVD      = iota
-	STACK_TABLE_SENDSTALL           = iota
-	STACK_TABLE_DSACKDUPS           = iota
-	STACK_TABLE_MAXMSS              = iota
-	STACK_TABLE_MINMSS              = iota
-	STACK_TABLE_SNDINITIAL          = iota
-	STACK_TABLE_RECINITIAL          = iota
-	STACK_TABLE_CURRETXQUEUE        = iota
-	STACK_TABLE_MAXRETXQUEUE        = iota
-	STACK_TABLE_MAXREASMQUEUE       = iota
-	STACK_TABLE_EARLYRETRANS        = iota
-	STACK_TABLE_EARLYRETRANSDELAY   = iota
+const (
+	PATH_TABLE_NONRECOVDAEPISODES PathVar = iota
+	PATH_TABLE_SUMOCTETSREORDERED         = iota
+	PATH_TABLE_NONRECOVDA                 = iota
+	PATH_TABLE_SAMPLERTT                  = iota
+	PATH_TABLE_MAXRTT                     = iota
+	PATH_TABLE_MINRTT                     = iota
+	PATH_TABLE_SUMRTT                     = iota
+	PATH_TABLE_COUNTRTT                   = iota
+	PATH_TABLE_MAXRTO                     = iota
+	PATH_TABLE_MINRTO                     = iota
+	PATH_TABLE_PTTL                       = iota
+	PATH_TABLE_PTOSIN                     = iota
+	PATH_TABLE_PRECONGSUMCWND             = iota
+	PATH_TABLE_PRECONGSUMRTT              = iota
+	PATH_TABLE_POSTCONGSUMRTT             = iota
+	PATH_TABLE_POSTCONGCOUNTRTT           = iota
+	PATH_TABLE_ECNSIGNALS                 = iota
+	PATH_TABLE_DUPACKEPISODES             = iota
+	PATH_TABLE_DUPACKSOUT                 = iota
+	PATH_TABLE_CERCVD                     = iota
+	PATH_TABLE_ECESENT                    = iota
+)
 
-	APP_TABLE_SNDMAX          = iota
-	APP_TABLE_THRUOCTETSACKED = iota
+type StackVar int
+
+const (
+	STACK_TABLE_ACTIVEOPEN          StackVar = iota
+	STACK_TABLE_MAXSSCWND                    = iota
+	STACK_TABLE_MAXCACWND                    = iota
+	STACK_TABLE_MAXSSTHRESH                  = iota
+	STACK_TABLE_MINSSTHRESH                  = iota
+	STACK_TABLE_DUPACKSIN                    = iota
+	STACK_TABLE_SPURIOUSFRDETECTED           = iota
+	STACK_TABLE_SPURIOUSRTODETECTED          = iota
+	STACK_TABLE_SOFTERRORS                   = iota
+	STACK_TABLE_SOFTERRORREASON              = iota
+	STACK_TABLE_SLOWSTART                    = iota
+	STACK_TABLE_CONGAVOID                    = iota
+	STACK_TABLE_OTHERREDUCTIONS              = iota
+	STACK_TABLE_CONGOVERCOUNT                = iota
+	STACK_TABLE_FASTRETRAN                   = iota
+	STACK_TABLE_SUBSEQUENTTIMEOUTS           = iota
+	STACK_TABLE_ABRUPTTIMEOUTS               = iota
+	STACK_TABLE_SACKSRCVD                    = iota
+	STACK_TABLE_SACKBLOCKSRCVD               = iota
+	STACK_TABLE_SENDSTALL                    = iota
+	STACK_TABLE_DSACKDUPS                    = iota
+	STACK_TABLE_MAXMSS                       = iota
+	STACK_TABLE_MINMSS                       = iota
+	STACK_TABLE_SNDINITIAL                   = iota
+	STACK_TABLE_RECINITIAL                   = iota
+	STACK_TABLE_CURRETXQUEUE                 = iota
+	STACK_TABLE_MAXRETXQUEUE                 = iota
+	STACK_TABLE_MAXREASMQUEUE                = iota
+	STACK_TABLE_EARLYRETRANS                 = iota
+	STACK_TABLE_EARLYRETRANSDELAY            = iota
+)
+
+type AppVar int
+
+const (
+	APP_TABLE_SNDMAX          AppVar = iota
+	APP_TABLE_THRUOCTETSACKED        = iota
 	// TODO: more
+)
 
-	EXTRAS_TABLE_OTHERREDUCTIONSCV = iota
-	EXTRAS_TABLE_OTHERREDUCTIONSCM = iota
-	EXTRAS_TABLE_PRIORITY          = iota
+type ExtrasVar int
+
+const (
+	EXTRAS_TABLE_OTHERREDUCTIONSCV ExtrasVar = iota
+	EXTRAS_TABLE_OTHERREDUCTIONSCM           = iota
+	EXTRAS_TABLE_PRIORITY                    = iota
 )
 
 // No methods for now..
 type Table interface{}
+
+type GlobalTable struct {
+	Users int
+
+	Limstate   SndLimState
+	LimstateTS uint64
+
+	StartTS   uint64
+	CurrentTS uint64
+
+	StartTv time.Time
+}
 
 type ConnectionTable struct {
 	AddressType uint32
@@ -193,24 +229,27 @@ const (
 )
 
 type Tables struct {
-	ConnectionTable ConnectionTable
-	PerfTable       PerfTable
-	PathTable       PathTable
-	StackTable      StackTable
-	AppTable        AppTable
-	ExtrasTable     ExtrasTable
+	GlobalTable     map[GlobalVar]uint32
+	ConnectionTable map[ConnectionVar]uint32
+	PerfTable       map[PerfVar]uint32
+	PathTable       map[PathVar]uint32
+	StackTable      map[StackVar]uint32
+	AppTable        map[AppVar]uint32
+	ExtrasTable     map[ExtrasVar]uint32
 }
 
 type Estats struct {
-	Users int
-
-	Limstate   SndLimState
-	LimstateTS uint64
-
-	StartTS   uint64
-	CurrentTS uint64
-
-	StartTv time.Time
-
 	Tables Tables
+}
+
+func New() *Estats {
+	e := new(Estats)
+	e.Tables.GlobalTable = make(map[GlobalVar]uint32)
+	e.Tables.ConnectionTable = make(map[ConnectionVar]uint32)
+	e.Tables.PerfTable = make(map[PerfVar]uint32)
+	e.Tables.PathTable = make(map[PathVar]uint32)
+	e.Tables.StackTable = make(map[StackVar]uint32)
+	e.Tables.AppTable = make(map[AppVar]uint32)
+	e.Tables.ExtrasTable = make(map[ExtrasVar]uint32)
+	return e
 }

@@ -38,24 +38,40 @@ func main() {
 	}
 	defer objs.Close()
 
-	// TODO: how to attach to multiple points
-	link, err := link.AttachTracing(link.TracingOptions{
+	initSockLink, err := link.AttachTracing(link.TracingOptions{
 		Program: objs.tcpestatsPrograms.TcpInitSock,
 	})
 	if err != nil {
-		log.Fatalf("attaching tracing: %v", err)
+		log.Fatalf("attaching init sock tracing: %v", err)
 	}
-	defer link.Close()
+	defer initSockLink.Close()
 
-	rd, err := ringbuf.NewReader(objs.tcpestatsMaps.Entries)
+	createOpenreqChildLink, err := link.AttachTracing(link.TracingOptions{
+		Program: objs.TcpCreateOpenreqChild,
+	})
 	if err != nil {
-		log.Fatalf("opening ringbuf reader: %v", err)
+		log.Fatalf("attaching create openreq child tracing: %v", err)
 	}
-	defer rd.Close()
+	defer createOpenreqChildLink.Close()
+
+	global_rd, err := ringbuf.NewReader(objs.tcpestatsMaps.GlobalTable)
+	if err != nil {
+		log.Fatalf("opening global table reader: %v", err)
+	}
+	defer global_rd.Close()
+
+	conn_rd, err := ringbuf.NewReader(objs.tcpestatsMaps.ConnectionTable)
+	if err != nil {
+		log.Fatalf("opening connection table reader: %v", err)
+	}
+	defer conn_rd.Close()
 
 	estats := tcp_estats.Estats{}
 
-	go readLoop(rd, &estats)
+//	go readLoop[tcp_estats.GlobalVar](global_rd, &estats.Tables.GlobalTable)
+//	go readLoop[tcp_estats.ConnectionVar](conn_rd, &estats.Tables.ConnectionTable)
+	go readLoop(global_rd, estats.Tables.GlobalTable)
+	go readLoop(conn_rd, estats.Tables.ConnectionTable)
 
 	<-stopper
 }
@@ -71,11 +87,16 @@ type key struct {
 type entry struct {
 	Key key
 	Op  tcp_estats.Operation
-	Var tcp_estats.Variable
+	Var uint32
 	Val uint32
 }
 
-func readLoop(rd *ringbuf.Reader, t *tcp_estats.Estats) {
+type Vars interface {
+	tcp_estats.GlobalVar | tcp_estats.ConnectionVar
+}
+
+
+func readLoop[V Vars](rd *ringbuf.Reader, m map[V]uint32) {
 	var entry entry
 	for {
 		record, err := rd.Read()
@@ -90,11 +111,26 @@ func readLoop(rd *ringbuf.Reader, t *tcp_estats.Estats) {
 
 		// parse to structure
 		if err := binary.Read(bytes.NewBuffer(record.RawSample), endian.Native, &entry); err != nil {
-			log.Printf("parsing sample: %v", err)
+			log.Printf("parsing entry: %v", err)
 			continue
 		}
 
-		log.Printf("%+v", entry)
+		log.Printf("read %+v", entry)
+
+		v := V(entry.Var)
+
+		switch entry.Op {
+		case tcp_estats.OPERATION_SET:
+			m[v] = entry.Val
+		case tcp_estats.OPERATION_ADD:
+			m[v] += entry.Val
+		case tcp_estats.OPERATION_SUB:
+			m[v] -= entry.Val
+		case tcp_estats.OPERATION_INC:
+			m[v] += 1
+		case tcp_estats.OPERATION_DEC:
+			m[v] -= 1
+		}
 	}
 }
 

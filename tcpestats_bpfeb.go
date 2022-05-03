@@ -62,7 +62,13 @@ type tcpestatsProgramSpecs struct {
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type tcpestatsMapSpecs struct {
-	Entries *ebpf.MapSpec `ebpf:"entries"`
+	AppTable        *ebpf.MapSpec `ebpf:"app_table"`
+	ConnectionTable *ebpf.MapSpec `ebpf:"connection_table"`
+	ExtrasTable     *ebpf.MapSpec `ebpf:"extras_table"`
+	GlobalTable     *ebpf.MapSpec `ebpf:"global_table"`
+	PathTable       *ebpf.MapSpec `ebpf:"path_table"`
+	PerfTable       *ebpf.MapSpec `ebpf:"perf_table"`
+	StackTable      *ebpf.MapSpec `ebpf:"stack_table"`
 }
 
 // tcpestatsObjects contains all objects after they have been loaded into the kernel.
@@ -84,12 +90,24 @@ func (o *tcpestatsObjects) Close() error {
 //
 // It can be passed to loadTcpestatsObjects or ebpf.CollectionSpec.LoadAndAssign.
 type tcpestatsMaps struct {
-	Entries *ebpf.Map `ebpf:"entries"`
+	AppTable        *ebpf.Map `ebpf:"app_table"`
+	ConnectionTable *ebpf.Map `ebpf:"connection_table"`
+	ExtrasTable     *ebpf.Map `ebpf:"extras_table"`
+	GlobalTable     *ebpf.Map `ebpf:"global_table"`
+	PathTable       *ebpf.Map `ebpf:"path_table"`
+	PerfTable       *ebpf.Map `ebpf:"perf_table"`
+	StackTable      *ebpf.Map `ebpf:"stack_table"`
 }
 
 func (m *tcpestatsMaps) Close() error {
 	return _TcpestatsClose(
-		m.Entries,
+		m.AppTable,
+		m.ConnectionTable,
+		m.ExtrasTable,
+		m.GlobalTable,
+		m.PathTable,
+		m.PerfTable,
+		m.StackTable,
 	)
 }
 

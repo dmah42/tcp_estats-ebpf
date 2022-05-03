@@ -60,36 +60,41 @@ struct tcp_sock {
 struct {
   __uint(type, BPF_MAP_TYPE_RINGBUF);
   __uint(max_entries, 1 << 24);
-} entries SEC(".maps");
+} global_table SEC(".maps");
 
-// attempt to get the `entry` struct into the BPF output
-// and therefore generated for Go.
-struct entry unused_entry __attribute__((unused));
+struct {
+  __uint(type, BPF_MAP_TYPE_RINGBUF);
+  __uint(max_entries, 1 << 24);
+} connection_table SEC(".maps");
 
-enum tcp_estats_variable unused_variable __attribute__((unused));
+struct {
+  __uint(type, BPF_MAP_TYPE_RINGBUF);
+  __uint(max_entries, 1 << 24);
+} perf_table SEC(".maps");
 
-#define TCP_ESTATS_CHECK(stats, table, expr) \
-  do {                                       \
-    if (stats && stats->tables.table) {      \
-      (expr);                                \
-    }                                        \
-  } while (0)
+struct {
+  __uint(type, BPF_MAP_TYPE_RINGBUF);
+  __uint(max_entries, 1 << 24);
+} path_table SEC(".maps");
 
-#define TCP_ESTATS_VAR_INC(stats, var) \
-  TCP_ESTATS_CHECK(stats, table, ++(stats->tables.table->var))
+struct {
+  __uint(type, BPF_MAP_TYPE_RINGBUF);
+  __uint(max_entries, 1 << 24);
+} stack_table SEC(".maps");
 
-#define TCP_ESTATS_VAR_DEC(stats, var) \
-  TCP_ESTATS_CHECK(stats, table, --(stats->tables.table->var))
+struct {
+  __uint(type, BPF_MAP_TYPE_RINGBUF);
+  __uint(max_entries, 1 << 24);
+} app_table SEC(".maps");
 
-#define TCP_ESTATS_VAR_ADD(stats, table, var, val) \
-  TCP_ESTATS_CHECK(stats, table, (stats->tables.table->var) += (val))
+struct {
+  __uint(type, BPF_MAP_TYPE_RINGBUF);
+  __uint(max_entries, 1 << 24);
+} extras_table SEC(".maps");
 
-#define TCP_ESTATS_VAR_SET(stats, table, var, val) \
-  TCP_ESTATS_CHECK(stats, table, (stats->tables.table->var) = (val))
-
-int submit_entry(struct sock_common *sk_comm, enum tcp_estats_operation op,
-                 enum tcp_estats_variable var, __u32 val) {
-  struct entry *entry = bpf_ringbuf_reserve(&entries, sizeof(struct entry), 0);
+int _submit_entry(void *table, struct sock_common *sk_comm,
+                  enum tcp_estats_operation op, __u32 var, __u32 val) {
+  struct entry *entry = bpf_ringbuf_reserve(table, sizeof(struct entry), 0);
   if (!entry) return 0;
 
   entry->key.saddr = sk_comm->skc_rcv_saddr;
@@ -105,10 +110,38 @@ int submit_entry(struct sock_common *sk_comm, enum tcp_estats_operation op,
   return 1;
 }
 
+#define FUNC_NAME(TABLE) submit_##TABLE##_table_entry
+#define VAR_TYPE(TABLE) tcp_estats_##TABLE##_table
+#define TABLE_NAME(TABLE) TABLE##_table
+
+#define SUBMIT_FUNC(TABLE)                                                     \
+  int FUNC_NAME(TABLE)(struct sock_common * sk_comm,                           \
+                       enum tcp_estats_operation op, enum VAR_TYPE(TABLE) var, \
+                       __u32 val) {                                            \
+    void *table = &TABLE_NAME(TABLE);                                          \
+    return _submit_entry(table, sk_comm, op, (__u32)var, val);                 \
+  }
+
+SUBMIT_FUNC(global)
+SUBMIT_FUNC(connection)
+SUBMIT_FUNC(perf)
+SUBMIT_FUNC(path)
+SUBMIT_FUNC(stack)
+SUBMIT_FUNC(app)
+SUBMIT_FUNC(extras)
+
 int tcp_estats_create(struct sock *sk, int active) {
+  // bpf_printk("[tcp_estats_create]");
+  if (!sk) {
+    // bpf_printk("NULL sock");
+    return 0;
+  }
   // TODO: support tcp6_sock if family is AF_INET6.
   struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
-  if (!ts) return 0;
+  if (!ts) {
+    // bpf_printk("NULL tcp_sock");
+    return 0;
+  }
 
   struct sock_common *sk_comm = &(sk->__sk_common);
 
@@ -123,50 +156,52 @@ int tcp_estats_create(struct sock *sk, int active) {
     return 0;
   }
 
-  submit_entry(sk_comm, TCP_ESTATS_OPERATION_SET,
-               TCP_ESTATS_CONNECTION_TABLE_ADDRESS_TYPE, addr_type);
+  submit_connection_table_entry(sk_comm, TCP_ESTATS_OPERATION_SET,
+                                TCP_ESTATS_CONNECTION_TABLE_ADDRESS_TYPE,
+                                addr_type);
 
-  submit_entry(sk_comm, TCP_ESTATS_OPERATION_SET,
-               TCP_ESTATS_GLOBAL_TABLE_LIMSTATE, TCP_ESTATS_SNDLIM_STARTUP);
+  submit_global_table_entry(sk_comm, TCP_ESTATS_OPERATION_SET,
+                            TCP_ESTATS_GLOBAL_TABLE_LIMSTATE,
+                            TCP_ESTATS_SNDLIM_STARTUP);
 
   __u32 timestamp = (__u32)(bpf_ktime_get_ns() / 1000000000);
-  submit_entry(sk_comm, TCP_ESTATS_OPERATION_SET,
-               TCP_ESTATS_GLOBAL_TABLE_LIMSTATE_TS, timestamp);
-  submit_entry(sk_comm, TCP_ESTATS_OPERATION_SET,
-               TCP_ESTATS_GLOBAL_TABLE_START_TS, timestamp);
-  submit_entry(sk_comm, TCP_ESTATS_OPERATION_SET,
-               TCP_ESTATS_GLOBAL_TABLE_CURRENT_TS, timestamp);
-  submit_entry(sk_comm, TCP_ESTATS_OPERATION_SET,
-               TCP_ESTATS_GLOBAL_TABLE_START_TV, timestamp);
+  submit_global_table_entry(sk_comm, TCP_ESTATS_OPERATION_SET,
+                            TCP_ESTATS_GLOBAL_TABLE_LIMSTATE_TS, timestamp);
+  submit_global_table_entry(sk_comm, TCP_ESTATS_OPERATION_SET,
+                            TCP_ESTATS_GLOBAL_TABLE_START_TS, timestamp);
+  submit_global_table_entry(sk_comm, TCP_ESTATS_OPERATION_SET,
+                            TCP_ESTATS_GLOBAL_TABLE_CURRENT_TS, timestamp);
+  submit_global_table_entry(sk_comm, TCP_ESTATS_OPERATION_SET,
+                            TCP_ESTATS_GLOBAL_TABLE_START_TV, timestamp);
 
-  submit_entry(sk_comm, TCP_ESTATS_OPERATION_SET,
-               TCP_ESTATS_STACK_TABLE_ACTIVEOPEN, active);
+  submit_stack_table_entry(sk_comm, TCP_ESTATS_OPERATION_SET,
+                           TCP_ESTATS_STACK_TABLE_ACTIVEOPEN, active);
 
-  submit_entry(sk_comm, TCP_ESTATS_OPERATION_SET, TCP_ESTATS_APP_TABLE_SNDMAX,
-               ts->snd_nxt);
-  submit_entry(sk_comm, TCP_ESTATS_OPERATION_SET,
-               TCP_ESTATS_STACK_TABLE_SNDINITIAL, ts->snd_nxt);
+  submit_app_table_entry(sk_comm, TCP_ESTATS_OPERATION_SET,
+                         TCP_ESTATS_APP_TABLE_SNDMAX, ts->snd_nxt);
+  submit_stack_table_entry(sk_comm, TCP_ESTATS_OPERATION_SET,
+                           TCP_ESTATS_STACK_TABLE_SNDINITIAL, ts->snd_nxt);
 
-  submit_entry(sk_comm, TCP_ESTATS_OPERATION_SET, TCP_ESTATS_PATH_TABLE_MINRTT,
-               ESTATS_INF32);
-  submit_entry(sk_comm, TCP_ESTATS_OPERATION_SET, TCP_ESTATS_PATH_TABLE_MINRTO,
-               ESTATS_INF32);
-  submit_entry(sk_comm, TCP_ESTATS_OPERATION_SET, TCP_ESTATS_STACK_TABLE_MINMSS,
-               ESTATS_INF32);
-  submit_entry(sk_comm, TCP_ESTATS_OPERATION_SET,
-               TCP_ESTATS_STACK_TABLE_MINSSTHRESH, ESTATS_INF32);
+  submit_path_table_entry(sk_comm, TCP_ESTATS_OPERATION_SET,
+                          TCP_ESTATS_PATH_TABLE_MINRTT, ESTATS_INF32);
+  submit_path_table_entry(sk_comm, TCP_ESTATS_OPERATION_SET,
+                          TCP_ESTATS_PATH_TABLE_MINRTO, ESTATS_INF32);
+  submit_stack_table_entry(sk_comm, TCP_ESTATS_OPERATION_SET,
+                           TCP_ESTATS_STACK_TABLE_MINMSS, ESTATS_INF32);
+  submit_stack_table_entry(sk_comm, TCP_ESTATS_OPERATION_SET,
+                           TCP_ESTATS_STACK_TABLE_MINSSTHRESH, ESTATS_INF32);
 
   return 1;
 }
 
 SEC("fexit/tcp_create_openreq_child")
 int BPF_PROG(tcp_create_openreq_child, struct sock *sk) {
-  bpf_printk("creating inactive stats");
+  // bpf_printk("[tcp_create_openreq_child]");
   return tcp_estats_create(sk, TCP_ESTATS_INACTIVE);
 }
 
 SEC("fexit/tcp_init_sock")
 int BPF_PROG(tcp_init_sock, struct sock *sk) {
-  bpf_printk("creating active stats");
+  // bpf_printk("[tcp_init_sock]");
   return tcp_estats_create(sk, TCP_ESTATS_ACTIVE);
 }
