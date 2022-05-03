@@ -20,9 +20,32 @@ source for an estats-patched 3.16.0 kernel.  The most relevant parts are:
 * [net/ipv4/tcp_estats.c](https://gitlab.cs.washington.edu/syslab/linux-3.16.0-tcp-estats/-/blob/master/net/ipv4/tcp_estats.c)
 
 ## approach
+
+### attempt one
 The approach I'll take is to replicate the estats structs in the eBPF layer, and
 hook in either through kprobes or existing function calls to populate the estats
 appropriately.
+
+This approach didn't really work as it requires a lot of logic in the eBPF layer
+including allocation to do it well, and I think there's a better approach...
+
+### attempt two
+Create a ring buffer per estats table, and one more for stats creation. Each
+entry in the ring buffer would contain:
+
+* a key to uniquely identify the socket: PID:sip:sport:dip:dport
+* an enum value representing the variable to operate on
+* an enum value representing the operation (set, add.. maybe inc, dec)
+* the operand value
+
+One goroutine to read each ring buffer, populating the tables. Error checking
+would ensure the variable is present in the given table. There may be a way
+to generalise the goroutines by passing in a table identifier as the operations
+are fixed from that point.
+
+We may need a way to wait on the creation ringbuffer when filling in stats, just
+in case there's a race condition between the go routines and we get a stats
+operation on a socket which we don't know about yet.
 
 ## current status
 a working eBPF program that reports on some TCP internals.
