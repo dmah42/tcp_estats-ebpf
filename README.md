@@ -48,4 +48,4 @@ in case there's a race condition between the go routines and we get a stats
 operation on a socket which we don't know about yet.
 
 ## current status
-a working eBPF program that reports on some TCP internals.
+rearchitecture complete but fails at runtime
