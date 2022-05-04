@@ -8,8 +8,8 @@
 tcp_estats_ebpf
 
 # generated files
-tcpestats_ebpfeb.go
-tcpestats_ebpfel.go
+#tcpestats_ebpfeb.go
+#tcpestats_ebpfel.go
 tcp_estats/*_string.go
 
 # Test binary, built with `go test -c`

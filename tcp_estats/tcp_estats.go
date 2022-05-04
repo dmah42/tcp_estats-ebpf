@@ -20,8 +20,8 @@ const (
 	OPERATION_SET Operation = iota
 	OPERATION_ADD Operation = iota
 	OPERATION_SUB Operation = iota
-	OPERATION_INC Operation = iota
-	OPERATION_DEC Operation = iota
+	OPERATION_MAX Operation = iota
+	OPERATION_MIN Operation = iota
 )
 
 type GlobalVar uint32
@@ -47,8 +47,44 @@ const (
 type PerfVar uint32
 
 const (
-	PERF_TABLE_SEGSOUT PerfVar = iota
-	// TODO: more perf
+	PERF_TABLE_SEGSOUT       PerfVar = iota
+	PERF_TABLE_DATASEGSOUT   PerfVar = iota
+	PERF_TABLE_DATAOCTETSOUT PerfVar = iota //u64
+	PERF_TABLE_SEGSRETRANS   PerfVar = iota
+	PERF_TABLE_OCTETSRETRANS PerfVar = iota
+	PERF_TABLE_SEGSIN        PerfVar = iota
+	PERF_TABLE_DATASEGSIN    PerfVar = iota
+	PERF_TABLE_DATAOCTETSIN  PerfVar = iota //u64
+	PERF_TABLE_NORMALRTTM    PerfVar = iota
+	PERF_TABLE_HIGHRTTM      PerfVar = iota
+	/*		ElapsedSecs */
+	/*		ElapsedMicroSecs */
+	/*		StartTimeStamp */
+	/*		CurMSS */
+	/*		PipeSize */
+	PERF_TABLE_MAXPIPESIZE PerfVar = iota
+	/*		SmoothedRTT */
+	/*		CurRTO */
+	PERF_TABLE_CONGSIGNALS PerfVar = iota
+	/*		CurCwnd */
+	/*		CurSsthresh */
+	PERF_TABLE_TIMEOUTS PerfVar = iota
+	/*		CurRwinSent */
+	PERF_TABLE_MAXRWINSENT  PerfVar = iota
+	PERF_TABLE_ZERORWINSENT PerfVar = iota
+	/*		CurRwinRcvd */
+	PERF_TABLE_MAXRWINRCVD  PerfVar = iota
+	PERF_TABLE_ZERORWINRCVD PerfVar = iota
+	/*		SndLimTransRwin */
+	/*		SndLimTransCwnd */
+	/*		SndLimTransSnd */
+	/*		SndLimTimeRwin */
+	/*		SndLimTimeCwnd */
+	/*		SndLimTimeSnd */
+	// TODO: figure this out
+	//u32		snd_lim_trans[TCP_ESTATS_SNDLIM_NSTATES];
+	//u32		snd_lim_time[TCP_ESTATS_SNDLIM_NSTATES];
+
 )
 
 type PathVar uint32
@@ -115,9 +151,11 @@ const (
 type AppVar uint32
 
 const (
-	APP_TABLE_SNDMAX          AppVar = iota
-	APP_TABLE_THRUOCTETSACKED AppVar = iota
-	// TODO: more
+	APP_TABLE_SNDMAX             AppVar = iota
+	APP_TABLE_THRUOCTETSACKED    AppVar = iota // u64
+	APP_TABLE_THRUOCTETSRECEIVED AppVar = iota // u64
+	APP_TABLE_MAXAPPWQUEUE       AppVar = iota
+	APP_TABLE_MAXAPPRQUEUE       AppVar = iota
 )
 
 type ExtrasVar uint32
@@ -147,6 +185,7 @@ type Vars interface {
 
 type Table[V Vars] struct {
 	sync.RWMutex
+	// TODO: this may need to be more general or a union-like type.
 	M map[V]uint32
 }
 
@@ -195,6 +234,48 @@ func (e *Estats) GetTableForVar(v any) any {
 	default:
 		log.Fatalf("unknown table for var %s", v)
 		return nil
+	}
+}
+
+func max(x, y uint32) uint32 {
+	if x < y {
+		return y
+	}
+	return x
+}
+
+func min(x, y uint32) uint32 {
+	if x > y {
+		return y
+	}
+	return x
+}
+
+// You may wonder why this isn't declared as a method on Estats.
+// Generics don't work on methods, only functions.
+func DoOp[V Vars](e *Estats, entry Entry) {
+	v := V(entry.Var)
+
+	t := e.GetTableForVar(v).(*Table[V])
+	t.RLock()
+	defer t.RUnlock()
+
+	switch entry.Op {
+	case OPERATION_SET:
+		log.Printf(" . setting %v to %d", v, entry.Val)
+		t.M[v] = entry.Val
+	case OPERATION_ADD:
+		log.Printf(" . adding %v to %d", v, entry.Val)
+		t.M[v] += entry.Val
+	case OPERATION_SUB:
+		log.Printf(" . subtracting %d from %v", entry.Val, v)
+		t.M[v] -= entry.Val
+	case OPERATION_MAX:
+		log.Printf(" . setting max to %v", v)
+		t.M[v] = max(t.M[v], entry.Val)
+	case OPERATION_MIN:
+		log.Printf(" . setting min to %v", v)
+		t.M[v] = min(t.M[v], entry.Val)
 	}
 }
 

@@ -1,7 +1,7 @@
 //go:build linux
 // +build linux
 
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go --strip llvm-strip-12 --cflags "-Wall -Werror" tcpestats tcp_estats.c
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go --strip llvm-strip-12 --cflags "-Wall -Werror -O1" tcpestats tcp_estats.c
 
 package main
 
@@ -47,21 +47,37 @@ func main() {
 	defer objs.Close()
 
 	// Create program links
-	initSockLink, err := link.AttachTracing(link.TracingOptions{
-		Program: objs.tcpestatsPrograms.TcpInitSock,
+	tcpEstatsCreateActive, err := link.AttachTracing(link.TracingOptions{
+		Program: objs.tcpestatsPrograms.TcpEstatsCreateActive,
 	})
 	if err != nil {
-		log.Fatalf("attaching init sock tracing: %v", err)
+		log.Fatalf("attaching tracing: %v", err)
 	}
-	defer initSockLink.Close()
+	defer tcpEstatsCreateActive.Close()
 
-	createOpenreqChildLink, err := link.AttachTracing(link.TracingOptions{
-		Program: objs.TcpCreateOpenreqChild,
+	tcpEstatsCreateInactive, err := link.AttachTracing(link.TracingOptions{
+		Program: objs.tcpestatsPrograms.TcpEstatsCreateInactive,
 	})
 	if err != nil {
-		log.Fatalf("attaching create openreq child tracing: %v", err)
+		log.Fatalf("attaching tracing: %v", err)
 	}
-	defer createOpenreqChildLink.Close()
+	defer tcpEstatsCreateInactive.Close()
+
+	tcpEstatsUpdateSegrecv, err := link.AttachTracing(link.TracingOptions{
+		Program: objs.tcpestatsPrograms.TcpEstatsUpdateSegrecv,
+	})
+	if err != nil {
+		log.Fatalf("attaching tracing: %v", err)
+	}
+	defer tcpEstatsUpdateSegrecv.Close()
+
+	tcpEstatsUpdateFinishSegrecv, err := link.AttachTracing(link.TracingOptions{
+		Program: objs.tcpestatsPrograms.TcpEstatsUpdateFinishSegrecv,
+	})
+	if err != nil {
+		log.Fatalf("attaching tracing: %v", err)
+	}
+	defer tcpEstatsUpdateFinishSegrecv.Close()
 
 	// Create ring buffers
 	global_rd, err := ringbuf.NewReader(objs.tcpestatsMaps.GlobalTable)
@@ -138,9 +154,7 @@ func readLoop[V tcp_estats.Vars](rd *ringbuf.Reader) {
 			continue
 		}
 
-		// log.Printf("read %+v", entry)
-
-		v := V(entry.Var)
+		log.Printf("read %+v", entry)
 
 		// There might be a way to get away with a RLock here followed
 		// by a Lock in the unlikely case we need to insert, but just taking
@@ -154,28 +168,7 @@ func readLoop[V tcp_estats.Vars](rd *ringbuf.Reader) {
 		}
 		estats_db.Unlock()
 
-		// FIXME: this is really ugly. we shouldn't need to cast here.
-		t := e.GetTableForVar(v).(*tcp_estats.Table[V])
-		t.RLock()
-		defer t.RUnlock()
-
-		switch entry.Op {
-		case tcp_estats.OPERATION_SET:
-			log.Printf(" . setting %v to %d", v, entry.Val)
-			t.M[v] = entry.Val
-		case tcp_estats.OPERATION_ADD:
-			log.Printf(" . adding %v to %d", v, entry.Val)
-			t.M[v] += entry.Val
-		case tcp_estats.OPERATION_SUB:
-			log.Printf(" . subtracting %d from %v", entry.Val, v)
-			t.M[v] -= entry.Val
-		case tcp_estats.OPERATION_INC:
-			log.Printf(" . incrementing %v", v)
-			t.M[v] += 1
-		case tcp_estats.OPERATION_DEC:
-			log.Printf(" . decrementing %v", v)
-			t.M[v] -= 1
-		}
+		tcp_estats.DoOp[V](e, entry)
 	}
 }
 
