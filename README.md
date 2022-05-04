@@ -21,15 +21,30 @@ source for an estats-patched 3.16.0 kernel.  The most relevant parts are:
 
 ## approach
 
-### attempt one
-The approach I'll take is to replicate the estats structs in the eBPF layer, and
-hook in either through kprobes or existing function calls to populate the estats
-appropriately.
+### attempt three
 
-This approach didn't really work as it requires a lot of logic in the eBPF layer
-including allocation to do it well, and I think there's a better approach...
+#### BPF
+Created a ring buffer per estats table and a "global" one (which isn't entirely
+in line with the RFC but allows things to be more generic). Each entry contains:
+* a key to identify the socket: PID_TGID:saddr:sport:daddr:dport
+    * no ipv6 support yet but sooon
+* an enum value representing the variable
+* an enum value representing the op (set, add, inc, dec)
+* the operand value (unset for inc and dec)
 
-### attempt two
+Care needs to be taken to ensure the variable matches the ringbuffer so the right
+variable goes to the right table.
+
+#### Go
+A single goroutine that reads from a ringbuffer and populates the tables. All the
+tables are maps guarded with rwmutexes (because we smart) and there's a higher
+level rwmutex protecting the tables themselves, created the first time we encounter
+a key we haven't seen before.
+
+Go 1.18+ is necessary as the project requires generics to do some type-agnostic stuff
+and enable the single read loop.
+
+### attempt two (archived)
 Create a ring buffer per estats table, and one more for stats creation. Each
 entry in the ring buffer would contain:
 
@@ -47,16 +62,24 @@ We may need a way to wait on the creation ringbuffer when filling in stats, just
 in case there's a race condition between the go routines and we get a stats
 operation on a socket which we don't know about yet.
 
+### attempt one (archived)
+The approach I'll take is to replicate the estats structs in the eBPF layer, and
+hook in either through kprobes or existing function calls to populate the estats
+appropriately.
+
+This approach didn't really work as it requires a lot of logic in the eBPF layer
+including allocation to do it well, and I think there's a better approach...
+
 ## current status
-* rearchitecture complete
-* program runs successfully
-* received data seems suspicious: `2022/05/04 10:53:43 read {Key:{Saddr:0 Daddr:0 Sport:0 Dport:0} Op:0 Var:1 Val:1472979}`
-* with more logging, it seems that perhaps just the key is not being set right
-    * `2022/05/04 11:11:44 read {Key:{Saddr:0 Daddr:0 Sport:0 Dport:0} Op:OPERATION_SET Var:4 Val:4294967295}`
-    * `2022/05/04 11:11:44  . setting STACK_TABLE_MINSSTHRESH to 4294967295`
-* more fiddling and now we're getting info in the key
-* just realised: there's an issue with the current code:
-    * we only create a single estats. we should be creating one per socket (hence the key).
-    * but we don't want goroutines per estats (i think?) as that would be a lot of goroutines so we'll need to instead create estats eagerly when we see a new key for the first time.
-    * there's a potential for a race condition though, so we'll need to set up a rwmutex for the list of estats. though if it's a map from key to estats struct that should be happening anyway (oops).
-    * the issue is how we pass the right table to the readloops. i may need to bite the bullet and have a table enum and a mapping. boo.
+program runs successfully, but it's unclear if it's working as intended as the
+incoming keys seem to have all 0s for the entry keys.  though the operators,
+variables, and values all come through appropriately.
+
+output is just a dump of the (optimistically named) DB on sigterm.
+
+## next steps
+more implementation of stats collection, requiring more program hooks.
+
+...
+
+tests? :D
