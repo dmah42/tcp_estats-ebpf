@@ -112,21 +112,6 @@ func main() {
 	<-stopper
 }
 
-// Mirror of `entry` in tcp_estats.c
-type key struct {
-	Saddr uint32
-	Daddr uint32
-	Sport uint16
-	Dport uint16
-}
-
-type entry struct {
-	Key key
-	Op  tcp_estats.Operation
-	Var uint32
-	Val uint32
-}
-
 type Vars interface {
 	tcp_estats.GlobalVar | tcp_estats.ConnectionVar | tcp_estats.PerfVar |
 		tcp_estats.PathVar | tcp_estats.StackVar | tcp_estats.AppVar |
@@ -134,7 +119,7 @@ type Vars interface {
 }
 
 func readLoop[V Vars](rd *ringbuf.Reader, m map[V]uint32) {
-	var entry entry
+	var entry tcp_estats.Entry
 	for {
 		record, err := rd.Read()
 		if err != nil {

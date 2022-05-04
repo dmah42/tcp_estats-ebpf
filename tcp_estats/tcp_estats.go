@@ -260,3 +260,18 @@ func New() *Estats {
 	e.Tables.ExtrasTable = make(map[ExtrasVar]uint32)
 	return e
 }
+
+// Mirror of `entry` in tcp_estats.c
+type Key struct {
+	Saddr uint32
+	Daddr uint32
+	Sport uint16
+	Dport uint16
+}
+
+type Entry struct {
+	Key Key
+	Op  Operation
+	Var uint32
+	Val uint32
+}
