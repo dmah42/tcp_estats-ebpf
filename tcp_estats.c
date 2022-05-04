@@ -188,10 +188,15 @@ int BPF_PROG(tcp_create_openreq_child, struct sock *sk) {
   if (!sk) return 0;
   struct sock_common *sk_comm = &(sk->__sk_common);
 
-  struct key key = {.saddr = sk_comm->skc_rcv_saddr,
-                    .daddr = sk_comm->skc_daddr,
-                    .sport = sk_comm->skc_num,
-                    .dport = bpf_ntohs(sk_comm->skc_dport)};
+  struct key key;
+  __builtin_memset(&key, 0, sizeof(key));
+
+  key.pid_tgid = bpf_get_current_pid_tgid();
+  key.saddr = sk_comm->skc_rcv_saddr;
+  key.daddr = sk_comm->skc_daddr;
+  key.sport = sk_comm->skc_num;
+  key.dport = bpf_ntohs(sk_comm->skc_dport);
+
   // TODO: support tcp6_sock if family is AF_INET6.
   struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
   if (!ts) return 0;
@@ -202,10 +207,16 @@ SEC("fexit/tcp_init_sock")
 int BPF_PROG(tcp_init_sock, struct sock *sk) {
   if (!sk) return 0;
   struct sock_common *sk_comm = &(sk->__sk_common);
-  struct key key = {.saddr = sk_comm->skc_rcv_saddr,
-                    .daddr = sk_comm->skc_daddr,
-                    .sport = sk_comm->skc_num,
-                    .dport = bpf_ntohs(sk_comm->skc_dport)};
+
+  struct key key;
+  __builtin_memset(&key, 0, sizeof(key));
+
+  key.pid_tgid = bpf_get_current_pid_tgid();
+  key.saddr = sk_comm->skc_rcv_saddr;
+  key.daddr = sk_comm->skc_daddr;
+  key.sport = sk_comm->skc_num;
+  key.dport = bpf_ntohs(sk_comm->skc_dport);
+
   // TODO: support tcp6_sock if family is AF_INET6.
   struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
   if (!ts) return 0;

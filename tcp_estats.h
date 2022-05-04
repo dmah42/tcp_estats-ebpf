@@ -123,6 +123,7 @@ enum tcp_estats_extras_table {
 // An entry describes the operation to make on one of the estats tables.
 struct key {
   // TODO: ipv6
+  __u64 pid_tgid;
   __u32 saddr;
   __u32 daddr;
   __u16 sport;
@@ -130,7 +131,6 @@ struct key {
 };
 
 struct entry {
-  // TODO: add pid (bpf_get_current_pid_tgid)
   struct key key;
   enum tcp_estats_operation op;
   // oneof table var enum entries

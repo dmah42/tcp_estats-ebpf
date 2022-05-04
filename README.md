@@ -54,3 +54,9 @@ operation on a socket which we don't know about yet.
 * with more logging, it seems that perhaps just the key is not being set right
     * `2022/05/04 11:11:44 read {Key:{Saddr:0 Daddr:0 Sport:0 Dport:0} Op:OPERATION_SET Var:4 Val:4294967295}`
     * `2022/05/04 11:11:44  . setting STACK_TABLE_MINSSTHRESH to 4294967295`
+* more fiddling and now we're getting info in the key
+* just realised: there's an issue with the current code:
+    * we only create a single estats. we should be creating one per socket (hence the key).
+    * but we don't want goroutines per estats (i think?) as that would be a lot of goroutines so we'll need to instead create estats eagerly when we see a new key for the first time.
+    * there's a potential for a race condition though, so we'll need to set up a rwmutex for the list of estats. though if it's a map from key to estats struct that should be happening anyway (oops).
+    * the issue is how we pass the right table to the readloops. i may need to bite the bullet and have a table enum and a mapping. boo.

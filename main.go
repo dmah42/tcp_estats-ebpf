@@ -23,6 +23,14 @@ import (
 	"tcp_estats-ebpf/tcp_estats"
 )
 
+var (
+	estats_db *db
+)
+
+func init() {
+	estats_db = NewDB()
+}
+
 func main() {
 	stopper := make(chan os.Signal, 1)
 	signal.Notify(stopper, os.Interrupt, syscall.SIGTERM)
@@ -98,27 +106,21 @@ func main() {
 	}
 	defer extras_rd.Close()
 
-	estats := tcp_estats.New()
-
 	// Start your engines
-	go readLoop(global_rd, estats.Tables.GlobalTable)
-	go readLoop(conn_rd, estats.Tables.ConnectionTable)
-	go readLoop(perf_rd, estats.Tables.PerfTable)
-	go readLoop(path_rd, estats.Tables.PathTable)
-	go readLoop(stack_rd, estats.Tables.StackTable)
-	go readLoop(app_rd, estats.Tables.AppTable)
-	go readLoop(extras_rd, estats.Tables.ExtrasTable)
+	go readLoop[tcp_estats.GlobalVar](global_rd)
+	go readLoop[tcp_estats.ConnectionVar](conn_rd)
+	go readLoop[tcp_estats.PerfVar](perf_rd)
+	go readLoop[tcp_estats.PathVar](path_rd)
+	go readLoop[tcp_estats.StackVar](stack_rd)
+	go readLoop[tcp_estats.AppVar](app_rd)
+	go readLoop[tcp_estats.ExtrasVar](extras_rd)
 
 	<-stopper
+
+	log.Printf("%s", estats_db)
 }
 
-type Vars interface {
-	tcp_estats.GlobalVar | tcp_estats.ConnectionVar | tcp_estats.PerfVar |
-		tcp_estats.PathVar | tcp_estats.StackVar | tcp_estats.AppVar |
-		tcp_estats.ExtrasVar
-}
-
-func readLoop[V Vars](rd *ringbuf.Reader, m map[V]uint32) {
+func readLoop[V tcp_estats.Vars](rd *ringbuf.Reader) {
 	var entry tcp_estats.Entry
 	for {
 		record, err := rd.Read()
@@ -127,7 +129,6 @@ func readLoop[V Vars](rd *ringbuf.Reader, m map[V]uint32) {
 				log.Println("received signal, exiting..")
 				return
 			}
-			log.Printf("reading from ringbuf: %v", err)
 			continue
 		}
 
@@ -137,26 +138,43 @@ func readLoop[V Vars](rd *ringbuf.Reader, m map[V]uint32) {
 			continue
 		}
 
-		log.Printf("read %+v", entry)
+		// log.Printf("read %+v", entry)
 
 		v := V(entry.Var)
+
+		// There might be a way to get away with a RLock here followed
+		// by a Lock in the unlikely case we need to insert, but just taking
+		// the more expensive lock is easier.
+		estats_db.Lock()
+
+		e, ok := estats_db.m[entry.Key]
+		if !ok {
+			e = tcp_estats.New()
+			estats_db.m[entry.Key] = e
+		}
+		estats_db.Unlock()
+
+		// FIXME: this is really ugly. we shouldn't need to cast here.
+		t := e.GetTableForVar(v).(*tcp_estats.Table[V])
+		t.RLock()
+		defer t.RUnlock()
 
 		switch entry.Op {
 		case tcp_estats.OPERATION_SET:
 			log.Printf(" . setting %v to %d", v, entry.Val)
-			m[v] = entry.Val
+			t.M[v] = entry.Val
 		case tcp_estats.OPERATION_ADD:
 			log.Printf(" . adding %v to %d", v, entry.Val)
-			m[v] += entry.Val
+			t.M[v] += entry.Val
 		case tcp_estats.OPERATION_SUB:
 			log.Printf(" . subtracting %d from %v", entry.Val, v)
-			m[v] -= entry.Val
+			t.M[v] -= entry.Val
 		case tcp_estats.OPERATION_INC:
 			log.Printf(" . incrementing %v", v)
-			m[v] += 1
+			t.M[v] += 1
 		case tcp_estats.OPERATION_DEC:
 			log.Printf(" . decrementing %v", v)
-			m[v] -= 1
+			t.M[v] -= 1
 		}
 	}
 }

@@ -9,6 +9,11 @@
 
 package tcp_estats
 
+import (
+	"log"
+	"sync"
+)
+
 type Operation uint32
 
 const (
@@ -123,106 +128,6 @@ const (
 	EXTRAS_TABLE_PRIORITY          ExtrasVar = iota
 )
 
-/*
-// No methods for now..
-type Table interface{}
-
-type GlobalTable struct {
-	Users int
-
-	Limstate   SndLimState
-	LimstateTS uint64
-
-	StartTS   uint64
-	CurrentTS uint64
-
-	StartTv time.Time
-}
-
-type ConnectionTable struct {
-	AddressType uint32
-
-	LocalAddress  Address
-	RemoteAddress Address
-
-	LocalPort uint16
-	RemPort   uint16
-}
-
-type PerfTable struct {
-	SegsOut uint32
-	// TODO: more
-}
-
-type PathTable struct {
-	NonRecovDAEpisodes uint32
-	SumOctetsReordered uint32
-	NonRecovDA         uint32
-	SampleRTT          uint32
-	MaxRTT             uint32
-	MinRTT             uint32
-	SumRTT             uint64
-	CountRTT           uint32
-	MaxRTO             uint32
-	MinRTO             uint32
-	IpTtl              uint8
-	IpTosIn            uint8
-	PreCongSumCwnd     uint32
-	PreCongSumRTT      uint32
-	PostCongSumRTT     uint32
-	PostCongCountRTT   uint32
-	ECNsignals         uint32
-	DupAckEpisodes     uint32
-	DupAcksOut         uint32
-	CERcvd             uint32
-	ECESent            uint32
-}
-type StackTable struct {
-	ActiveOpen          uint32
-	MaxSsCwnd           uint32
-	MaxCaCwnd           uint32
-	MaxSsthresh         uint32
-	MinSsthresh         uint32
-	DupAcksIn           uint32
-	SpuriousFrDetected  uint32
-	SpuriousRtoDetected uint32
-	SoftErrors          uint32
-	SoftErrorReason     uint32
-	SlowStart           uint32
-	CongAvoid           uint32
-	OtherReductions     uint32
-	CongOverCount       uint32
-	FastRetran          uint32
-	SubsequentTimeouts  uint32
-	AbruptTimeouts      uint32
-	SACKsRcvd           uint32
-	SACKBlocksRcvd      uint32
-	SendStall           uint32
-	DSACKDups           uint32
-	MaxMSS              uint32
-	MinMSS              uint32
-	SndInitial          uint32
-	RecInitial          uint32
-	CurRetxQueue        uint32
-	MaxRetxQueue        uint32
-	MaxReasmQueue       uint32
-	EarlyRetrans        uint32
-	EarlyRetransDelay   uint32
-}
-
-type AppTable struct {
-	SndMax          uint32
-	ThruOctetsAcked uint64
-	// TODO: more
-}
-
-type ExtrasTable struct {
-	OtherReductionsCV uint32
-	OtherReductionsCM uint32
-	Priority          uint32
-}
-*/
-
 type SndLimState int
 
 const (
@@ -235,38 +140,71 @@ const (
 	SNDLIM_PACE                 = iota
 )
 
-type Tables struct {
-	GlobalTable     map[GlobalVar]uint32
-	ConnectionTable map[ConnectionVar]uint32
-	PerfTable       map[PerfVar]uint32
-	PathTable       map[PathVar]uint32
-	StackTable      map[StackVar]uint32
-	AppTable        map[AppVar]uint32
-	ExtrasTable     map[ExtrasVar]uint32
+type Vars interface {
+	GlobalVar | ConnectionVar | PerfVar | PathVar |
+		StackVar | AppVar | ExtrasVar
+}
+
+type Table[V Vars] struct {
+	sync.RWMutex
+	M map[V]uint32
+}
+
+type tables struct {
+	global     Table[GlobalVar]
+	connection Table[ConnectionVar]
+	perf       Table[PerfVar]
+	path       Table[PathVar]
+	stack      Table[StackVar]
+	app        Table[AppVar]
+	extras     Table[ExtrasVar]
 }
 
 type Estats struct {
-	Tables Tables
+	tables tables
 }
 
 func New() *Estats {
 	e := new(Estats)
-	e.Tables.GlobalTable = make(map[GlobalVar]uint32)
-	e.Tables.ConnectionTable = make(map[ConnectionVar]uint32)
-	e.Tables.PerfTable = make(map[PerfVar]uint32)
-	e.Tables.PathTable = make(map[PathVar]uint32)
-	e.Tables.StackTable = make(map[StackVar]uint32)
-	e.Tables.AppTable = make(map[AppVar]uint32)
-	e.Tables.ExtrasTable = make(map[ExtrasVar]uint32)
+	e.tables.global = Table[GlobalVar]{M: make(map[GlobalVar]uint32)}
+	e.tables.connection = Table[ConnectionVar]{M: make(map[ConnectionVar]uint32)}
+	e.tables.perf = Table[PerfVar]{M: make(map[PerfVar]uint32)}
+	e.tables.path = Table[PathVar]{M: make(map[PathVar]uint32)}
+	e.tables.stack = Table[StackVar]{M: make(map[StackVar]uint32)}
+	e.tables.app = Table[AppVar]{M: make(map[AppVar]uint32)}
+	e.tables.extras = Table[ExtrasVar]{M: make(map[ExtrasVar]uint32)}
 	return e
+}
+
+func (e *Estats) GetTableForVar(v any) any {
+	switch v.(type) {
+	case GlobalVar:
+		return &e.tables.global
+	case ConnectionVar:
+		return &e.tables.connection
+	case PerfVar:
+		return &e.tables.perf
+	case PathVar:
+		return &e.tables.path
+	case StackVar:
+		return &e.tables.stack
+	case AppVar:
+		return &e.tables.app
+	case ExtrasVar:
+		return &e.tables.extras
+	default:
+		log.Fatalf("unknown table for var %s", v)
+		return nil
+	}
 }
 
 // Mirror of `entry` in tcp_estats.c
 type Key struct {
-	Saddr uint32
-	Daddr uint32
-	Sport uint16
-	Dport uint16
+	PidTgid uint64
+	Saddr   uint32
+	Daddr   uint32
+	Sport   uint16
+	Dport   uint16
 }
 
 type Entry struct {
