@@ -48,4 +48,6 @@ in case there's a race condition between the go routines and we get a stats
 operation on a socket which we don't know about yet.
 
 ## current status
-rearchitecture complete but fails at runtime
+* rearchitecture complete
+* program runs successfully
+* received data seems suspicious: `2022/05/04 10:53:43 read {Key:{Saddr:0 Daddr:0 Sport:0 Dport:0} Op:0 Var:1 Val:1472979}`
