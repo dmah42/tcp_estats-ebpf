@@ -38,6 +38,7 @@ func main() {
 	}
 	defer objs.Close()
 
+	// Create program links
 	initSockLink, err := link.AttachTracing(link.TracingOptions{
 		Program: objs.tcpestatsPrograms.TcpInitSock,
 	})
@@ -54,6 +55,7 @@ func main() {
 	}
 	defer createOpenreqChildLink.Close()
 
+	// Create ring buffers
 	global_rd, err := ringbuf.NewReader(objs.tcpestatsMaps.GlobalTable)
 	if err != nil {
 		log.Fatalf("opening global table reader: %v", err)
@@ -66,12 +68,46 @@ func main() {
 	}
 	defer conn_rd.Close()
 
+	perf_rd, err := ringbuf.NewReader(objs.tcpestatsMaps.PerfTable)
+	if err != nil {
+		log.Fatalf("opening perf table reader: %v", err)
+	}
+	defer perf_rd.Close()
+
+	path_rd, err := ringbuf.NewReader(objs.tcpestatsMaps.PathTable)
+	if err != nil {
+		log.Fatalf("opening path table reader: %v", err)
+	}
+	defer path_rd.Close()
+
+	stack_rd, err := ringbuf.NewReader(objs.tcpestatsMaps.StackTable)
+	if err != nil {
+		log.Fatalf("opening stack table reader: %v", err)
+	}
+	defer stack_rd.Close()
+
+	app_rd, err := ringbuf.NewReader(objs.tcpestatsMaps.AppTable)
+	if err != nil {
+		log.Fatalf("opening app table reader: %v", err)
+	}
+	defer app_rd.Close()
+
+	extras_rd, err := ringbuf.NewReader(objs.tcpestatsMaps.ExtrasTable)
+	if err != nil {
+		log.Fatalf("opening extras table reader: %v", err)
+	}
+	defer extras_rd.Close()
+
 	estats := tcp_estats.New()
 
-	//	go readLoop[tcp_estats.GlobalVar](global_rd, &estats.Tables.GlobalTable)
-	//	go readLoop[tcp_estats.ConnectionVar](conn_rd, &estats.Tables.ConnectionTable)
+	// Start your engines
 	go readLoop(global_rd, estats.Tables.GlobalTable)
 	go readLoop(conn_rd, estats.Tables.ConnectionTable)
+	go readLoop(perf_rd, estats.Tables.PerfTable)
+	go readLoop(path_rd, estats.Tables.PathTable)
+	go readLoop(stack_rd, estats.Tables.StackTable)
+	go readLoop(app_rd, estats.Tables.AppTable)
+	go readLoop(extras_rd, estats.Tables.ExtrasTable)
 
 	<-stopper
 }
@@ -92,7 +128,9 @@ type entry struct {
 }
 
 type Vars interface {
-	tcp_estats.GlobalVar | tcp_estats.ConnectionVar
+	tcp_estats.GlobalVar | tcp_estats.ConnectionVar | tcp_estats.PerfVar |
+		tcp_estats.PathVar | tcp_estats.StackVar | tcp_estats.AppVar |
+		tcp_estats.ExtrasVar
 }
 
 func readLoop[V Vars](rd *ringbuf.Reader, m map[V]uint32) {
@@ -120,14 +158,19 @@ func readLoop[V Vars](rd *ringbuf.Reader, m map[V]uint32) {
 
 		switch entry.Op {
 		case tcp_estats.OPERATION_SET:
+			log.Printf(" . setting %v to %d", v, entry.Val)
 			m[v] = entry.Val
 		case tcp_estats.OPERATION_ADD:
+			log.Printf(" . adding %v to %d", v, entry.Val)
 			m[v] += entry.Val
 		case tcp_estats.OPERATION_SUB:
+			log.Printf(" . subtracting %d from %v", entry.Val, v)
 			m[v] -= entry.Val
 		case tcp_estats.OPERATION_INC:
+			log.Printf(" . incrementing %v", v)
 			m[v] += 1
 		case tcp_estats.OPERATION_DEC:
+			log.Printf(" . decrementing %v", v)
 			m[v] -= 1
 		}
 	}
