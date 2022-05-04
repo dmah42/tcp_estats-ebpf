@@ -130,6 +130,7 @@ struct key {
 };
 
 struct entry {
+  // TODO: add pid (bpf_get_current_pid_tgid)
   struct key key;
   enum tcp_estats_operation op;
   // oneof table var enum entries

@@ -107,7 +107,7 @@ int _submit_entry(void *table, struct sock_common *sk_comm,
 
   bpf_ringbuf_submit(entry, 0);
 
-  return 1;
+  return 0;
 }
 
 #define FUNC_NAME(TABLE) submit_##TABLE##_table_entry
@@ -130,26 +130,16 @@ SUBMIT_FUNC(stack)
 SUBMIT_FUNC(app)
 SUBMIT_FUNC(extras)
 
-int tcp_estats_create(struct sock *sk, int active) {
-  // bpf_printk("[tcp_estats_create]");
-  if (!sk) {
-    // bpf_printk("NULL sock");
-    return 0;
-  }
-  // TODO: support tcp6_sock if family is AF_INET6.
-  struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
-  if (!ts) {
-    // bpf_printk("NULL tcp_sock");
-    return 0;
-  }
-
-  struct sock_common *sk_comm = &(sk->__sk_common);
+static int tcp_estats_create(struct sock_common *sk_comm, struct tcp_sock *ts,
+                             int addr_family, int active) {
+  if (!sk_comm) return 0;
+  if (!ts) return 0;
 
   enum tcp_estats_addrtype addr_type;
 
-  if (sk_comm->skc_family == AF_INET) {
+  if (addr_family == AF_INET) {
     addr_type = TCP_ESTATS_ADDRTYPE_IPV4;
-  } else if (sk_comm->skc_family == AF_INET6) {
+  } else if (addr_family == AF_INET6) {
     addr_type = TCP_ESTATS_ADDRTYPE_IPV6;
   } else {
     // Invalid address family
@@ -191,17 +181,25 @@ int tcp_estats_create(struct sock *sk, int active) {
   submit_stack_table_entry(sk_comm, TCP_ESTATS_OPERATION_SET,
                            TCP_ESTATS_STACK_TABLE_MINSSTHRESH, ESTATS_INF32);
 
-  return 1;
+  return 0;
 }
 
 SEC("fexit/tcp_create_openreq_child")
 int BPF_PROG(tcp_create_openreq_child, struct sock *sk) {
-  // bpf_printk("[tcp_create_openreq_child]");
-  return tcp_estats_create(sk, TCP_ESTATS_INACTIVE);
+  if (!sk) return 0;
+  struct sock_common *sk_comm = &(sk->__sk_common);
+  // TODO: support tcp6_sock if family is AF_INET6.
+  struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
+  if (!ts) return 0;
+  return tcp_estats_create(sk_comm, ts, AF_INET, TCP_ESTATS_INACTIVE);
 }
 
 SEC("fexit/tcp_init_sock")
 int BPF_PROG(tcp_init_sock, struct sock *sk) {
-  // bpf_printk("[tcp_init_sock]");
-  return tcp_estats_create(sk, TCP_ESTATS_ACTIVE);
+  if (!sk) return 0;
+  struct sock_common *sk_comm = &(sk->__sk_common);
+  // TODO: support tcp6_sock if family is AF_INET6.
+  struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
+  if (!ts) return 0;
+  return tcp_estats_create(sk_comm, ts, AF_INET, TCP_ESTATS_ACTIVE);
 }
