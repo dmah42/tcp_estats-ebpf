@@ -1,10 +1,6 @@
 package tcp_estats
 
-import (
-	"time"
-)
-
-type Operation int
+type Operation uint32
 
 const (
 	OPERATION_SET Operation = iota
@@ -14,7 +10,7 @@ const (
 	OPERATION_DEC           = iota
 )
 
-type GlobalVar int
+type GlobalVar uint32
 
 const (
 	GLOBAL_TABLE_LIMSTATE    GlobalVar = iota
@@ -24,7 +20,7 @@ const (
 	GLOBAL_TABLE_START_TV              = iota
 )
 
-type ConnectionVar int
+type ConnectionVar uint32
 
 const (
 	CONNECTION_TABLE_ADDRESS_TYPE   ConnectionVar = iota
@@ -34,14 +30,14 @@ const (
 	CONNECTION_TABLE_REMOTE_PORT                  = iota
 )
 
-type PerfVar int
+type PerfVar uint32
 
 const (
 	PERF_TABLE_SEGSOUT PerfVar = iota
 	// TODO: more perf
 )
 
-type PathVar int
+type PathVar uint32
 
 const (
 	PATH_TABLE_NONRECOVDAEPISODES PathVar = iota
@@ -67,7 +63,7 @@ const (
 	PATH_TABLE_ECESENT                    = iota
 )
 
-type StackVar int
+type StackVar uint32
 
 const (
 	STACK_TABLE_ACTIVEOPEN          StackVar = iota
@@ -102,7 +98,7 @@ const (
 	STACK_TABLE_EARLYRETRANSDELAY            = iota
 )
 
-type AppVar int
+type AppVar uint32
 
 const (
 	APP_TABLE_SNDMAX          AppVar = iota
@@ -110,7 +106,7 @@ const (
 	// TODO: more
 )
 
-type ExtrasVar int
+type ExtrasVar uint32
 
 const (
 	EXTRAS_TABLE_OTHERREDUCTIONSCV ExtrasVar = iota
@@ -118,6 +114,7 @@ const (
 	EXTRAS_TABLE_PRIORITY                    = iota
 )
 
+/*
 // No methods for now..
 type Table interface{}
 
@@ -215,6 +212,7 @@ type ExtrasTable struct {
 	OtherReductionsCM uint32
 	Priority          uint32
 }
+*/
 
 type SndLimState int
 

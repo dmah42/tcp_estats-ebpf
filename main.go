@@ -66,10 +66,10 @@ func main() {
 	}
 	defer conn_rd.Close()
 
-	estats := tcp_estats.Estats{}
+	estats := tcp_estats.New()
 
-//	go readLoop[tcp_estats.GlobalVar](global_rd, &estats.Tables.GlobalTable)
-//	go readLoop[tcp_estats.ConnectionVar](conn_rd, &estats.Tables.ConnectionTable)
+	//	go readLoop[tcp_estats.GlobalVar](global_rd, &estats.Tables.GlobalTable)
+	//	go readLoop[tcp_estats.ConnectionVar](conn_rd, &estats.Tables.ConnectionTable)
 	go readLoop(global_rd, estats.Tables.GlobalTable)
 	go readLoop(conn_rd, estats.Tables.ConnectionTable)
 
@@ -94,7 +94,6 @@ type entry struct {
 type Vars interface {
 	tcp_estats.GlobalVar | tcp_estats.ConnectionVar
 }
-
 
 func readLoop[V Vars](rd *ringbuf.Reader, m map[V]uint32) {
 	var entry entry
