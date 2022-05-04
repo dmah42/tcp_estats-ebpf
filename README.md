@@ -51,3 +51,6 @@ operation on a socket which we don't know about yet.
 * rearchitecture complete
 * program runs successfully
 * received data seems suspicious: `2022/05/04 10:53:43 read {Key:{Saddr:0 Daddr:0 Sport:0 Dport:0} Op:0 Var:1 Val:1472979}`
+* with more logging, it seems that perhaps just the key is not being set right
+    * `2022/05/04 11:11:44 read {Key:{Saddr:0 Daddr:0 Sport:0 Dport:0} Op:OPERATION_SET Var:4 Val:4294967295}`
+    * `2022/05/04 11:11:44  . setting STACK_TABLE_MINSSTHRESH to 4294967295`

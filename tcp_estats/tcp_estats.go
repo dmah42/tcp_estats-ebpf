@@ -1,33 +1,42 @@
+//go:generate go run golang.org/x/tools/cmd/stringer -type=Operation
+//go:generate go run golang.org/x/tools/cmd/stringer -type=GlobalVar
+//go:generate go run golang.org/x/tools/cmd/stringer -type=ConnectionVar
+//go:generate go run golang.org/x/tools/cmd/stringer -type=PathVar
+//go:generate go run golang.org/x/tools/cmd/stringer -type=PerfVar
+//go:generate go run golang.org/x/tools/cmd/stringer -type=StackVar
+//go:generate go run golang.org/x/tools/cmd/stringer -type=AppVar
+//go:generate go run golang.org/x/tools/cmd/stringer -type=ExtrasVar
+
 package tcp_estats
 
 type Operation uint32
 
 const (
 	OPERATION_SET Operation = iota
-	OPERATION_ADD           = iota
-	OPERATION_SUB           = iota
-	OPERATION_INC           = iota
-	OPERATION_DEC           = iota
+	OPERATION_ADD Operation = iota
+	OPERATION_SUB Operation = iota
+	OPERATION_INC Operation = iota
+	OPERATION_DEC Operation = iota
 )
 
 type GlobalVar uint32
 
 const (
 	GLOBAL_TABLE_LIMSTATE    GlobalVar = iota
-	GLOBAL_TABLE_LIMSTATE_TS           = iota
-	GLOBAL_TABLE_START_TS              = iota
-	GLOBAL_TABLE_CURRENT_TS            = iota
-	GLOBAL_TABLE_START_TV              = iota
+	GLOBAL_TABLE_LIMSTATE_TS GlobalVar = iota
+	GLOBAL_TABLE_START_TS    GlobalVar = iota
+	GLOBAL_TABLE_CURRENT_TS  GlobalVar = iota
+	GLOBAL_TABLE_START_TV    GlobalVar = iota
 )
 
 type ConnectionVar uint32
 
 const (
 	CONNECTION_TABLE_ADDRESS_TYPE   ConnectionVar = iota
-	CONNECTION_TABLE_LOCAL_ADDRESS                = iota
-	CONNECTION_TABLE_REMOTE_ADDRESS               = iota
-	CONNECTION_TABLE_LOCAL_PORT                   = iota
-	CONNECTION_TABLE_REMOTE_PORT                  = iota
+	CONNECTION_TABLE_LOCAL_ADDRESS  ConnectionVar = iota
+	CONNECTION_TABLE_REMOTE_ADDRESS ConnectionVar = iota
+	CONNECTION_TABLE_LOCAL_PORT     ConnectionVar = iota
+	CONNECTION_TABLE_REMOTE_PORT    ConnectionVar = iota
 )
 
 type PerfVar uint32
@@ -41,68 +50,68 @@ type PathVar uint32
 
 const (
 	PATH_TABLE_NONRECOVDAEPISODES PathVar = iota
-	PATH_TABLE_SUMOCTETSREORDERED         = iota
-	PATH_TABLE_NONRECOVDA                 = iota
-	PATH_TABLE_SAMPLERTT                  = iota
-	PATH_TABLE_MAXRTT                     = iota
-	PATH_TABLE_MINRTT                     = iota
-	PATH_TABLE_SUMRTT                     = iota
-	PATH_TABLE_COUNTRTT                   = iota
-	PATH_TABLE_MAXRTO                     = iota
-	PATH_TABLE_MINRTO                     = iota
-	PATH_TABLE_PTTL                       = iota
-	PATH_TABLE_PTOSIN                     = iota
-	PATH_TABLE_PRECONGSUMCWND             = iota
-	PATH_TABLE_PRECONGSUMRTT              = iota
-	PATH_TABLE_POSTCONGSUMRTT             = iota
-	PATH_TABLE_POSTCONGCOUNTRTT           = iota
-	PATH_TABLE_ECNSIGNALS                 = iota
-	PATH_TABLE_DUPACKEPISODES             = iota
-	PATH_TABLE_DUPACKSOUT                 = iota
-	PATH_TABLE_CERCVD                     = iota
-	PATH_TABLE_ECESENT                    = iota
+	PATH_TABLE_SUMOCTETSREORDERED PathVar = iota
+	PATH_TABLE_NONRECOVDA         PathVar = iota
+	PATH_TABLE_SAMPLERTT          PathVar = iota
+	PATH_TABLE_MAXRTT             PathVar = iota
+	PATH_TABLE_MINRTT             PathVar = iota
+	PATH_TABLE_SUMRTT             PathVar = iota
+	PATH_TABLE_COUNTRTT           PathVar = iota
+	PATH_TABLE_MAXRTO             PathVar = iota
+	PATH_TABLE_MINRTO             PathVar = iota
+	PATH_TABLE_PTTL               PathVar = iota
+	PATH_TABLE_PTOSIN             PathVar = iota
+	PATH_TABLE_PRECONGSUMCWND     PathVar = iota
+	PATH_TABLE_PRECONGSUMRTT      PathVar = iota
+	PATH_TABLE_POSTCONGSUMRTT     PathVar = iota
+	PATH_TABLE_POSTCONGCOUNTRTT   PathVar = iota
+	PATH_TABLE_ECNSIGNALS         PathVar = iota
+	PATH_TABLE_DUPACKEPISODES     PathVar = iota
+	PATH_TABLE_DUPACKSOUT         PathVar = iota
+	PATH_TABLE_CERCVD             PathVar = iota
+	PATH_TABLE_ECESENT            PathVar = iota
 )
 
 type StackVar uint32
 
 const (
 	STACK_TABLE_ACTIVEOPEN          StackVar = iota
-	STACK_TABLE_MAXSSCWND                    = iota
-	STACK_TABLE_MAXCACWND                    = iota
-	STACK_TABLE_MAXSSTHRESH                  = iota
-	STACK_TABLE_MINSSTHRESH                  = iota
-	STACK_TABLE_DUPACKSIN                    = iota
-	STACK_TABLE_SPURIOUSFRDETECTED           = iota
-	STACK_TABLE_SPURIOUSRTODETECTED          = iota
-	STACK_TABLE_SOFTERRORS                   = iota
-	STACK_TABLE_SOFTERRORREASON              = iota
-	STACK_TABLE_SLOWSTART                    = iota
-	STACK_TABLE_CONGAVOID                    = iota
-	STACK_TABLE_OTHERREDUCTIONS              = iota
-	STACK_TABLE_CONGOVERCOUNT                = iota
-	STACK_TABLE_FASTRETRAN                   = iota
-	STACK_TABLE_SUBSEQUENTTIMEOUTS           = iota
-	STACK_TABLE_ABRUPTTIMEOUTS               = iota
-	STACK_TABLE_SACKSRCVD                    = iota
-	STACK_TABLE_SACKBLOCKSRCVD               = iota
-	STACK_TABLE_SENDSTALL                    = iota
-	STACK_TABLE_DSACKDUPS                    = iota
-	STACK_TABLE_MAXMSS                       = iota
-	STACK_TABLE_MINMSS                       = iota
-	STACK_TABLE_SNDINITIAL                   = iota
-	STACK_TABLE_RECINITIAL                   = iota
-	STACK_TABLE_CURRETXQUEUE                 = iota
-	STACK_TABLE_MAXRETXQUEUE                 = iota
-	STACK_TABLE_MAXREASMQUEUE                = iota
-	STACK_TABLE_EARLYRETRANS                 = iota
-	STACK_TABLE_EARLYRETRANSDELAY            = iota
+	STACK_TABLE_MAXSSCWND           StackVar = iota
+	STACK_TABLE_MAXCACWND           StackVar = iota
+	STACK_TABLE_MAXSSTHRESH         StackVar = iota
+	STACK_TABLE_MINSSTHRESH         StackVar = iota
+	STACK_TABLE_DUPACKSIN           StackVar = iota
+	STACK_TABLE_SPURIOUSFRDETECTED  StackVar = iota
+	STACK_TABLE_SPURIOUSRTODETECTED StackVar = iota
+	STACK_TABLE_SOFTERRORS          StackVar = iota
+	STACK_TABLE_SOFTERRORREASON     StackVar = iota
+	STACK_TABLE_SLOWSTART           StackVar = iota
+	STACK_TABLE_CONGAVOID           StackVar = iota
+	STACK_TABLE_OTHERREDUCTIONS     StackVar = iota
+	STACK_TABLE_CONGOVERCOUNT       StackVar = iota
+	STACK_TABLE_FASTRETRAN          StackVar = iota
+	STACK_TABLE_SUBSEQUENTTIMEOUTS  StackVar = iota
+	STACK_TABLE_ABRUPTTIMEOUTS      StackVar = iota
+	STACK_TABLE_SACKSRCVD           StackVar = iota
+	STACK_TABLE_SACKBLOCKSRCVD      StackVar = iota
+	STACK_TABLE_SENDSTALL           StackVar = iota
+	STACK_TABLE_DSACKDUPS           StackVar = iota
+	STACK_TABLE_MAXMSS              StackVar = iota
+	STACK_TABLE_MINMSS              StackVar = iota
+	STACK_TABLE_SNDINITIAL          StackVar = iota
+	STACK_TABLE_RECINITIAL          StackVar = iota
+	STACK_TABLE_CURRETXQUEUE        StackVar = iota
+	STACK_TABLE_MAXRETXQUEUE        StackVar = iota
+	STACK_TABLE_MAXREASMQUEUE       StackVar = iota
+	STACK_TABLE_EARLYRETRANS        StackVar = iota
+	STACK_TABLE_EARLYRETRANSDELAY   StackVar = iota
 )
 
 type AppVar uint32
 
 const (
 	APP_TABLE_SNDMAX          AppVar = iota
-	APP_TABLE_THRUOCTETSACKED        = iota
+	APP_TABLE_THRUOCTETSACKED AppVar = iota
 	// TODO: more
 )
 
@@ -110,8 +119,8 @@ type ExtrasVar uint32
 
 const (
 	EXTRAS_TABLE_OTHERREDUCTIONSCV ExtrasVar = iota
-	EXTRAS_TABLE_OTHERREDUCTIONSCM           = iota
-	EXTRAS_TABLE_PRIORITY                    = iota
+	EXTRAS_TABLE_OTHERREDUCTIONSCM ExtrasVar = iota
+	EXTRAS_TABLE_PRIORITY          ExtrasVar = iota
 )
 
 /*

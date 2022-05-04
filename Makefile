@@ -4,8 +4,9 @@ OUTPUT=tcp_estats_ebpf
 build: gen $(OUTPUT)
 
 .PHONY: gen
-gen: tcpestats_bpfel.go tcpestats_bpfeb.go
+gen: tcp_estats.c tcp_estats.h tcp_estats/tcp_estats.go
 	go generate main.go
+	go generate tcp_estats/tcp_estats.go
 
 .PHONY: sum
 sum: go.sum
