@@ -7,7 +7,11 @@
 #include <bpf/bpf_tracing.h>
 #include <errno.h>
 #include <linux/bpf.h>
+#include <linux/if_ether.h>
+#include <linux/ip.h>
+#include <linux/tcp.h>
 #include <linux/types.h>
+#include <unistd.h>
 
 #define AF_INET 2
 #define AF_INET6 10
@@ -54,6 +58,7 @@ struct sock {
 /**
  * struct sk_buff is the network layer socket buffer representation.
  */
+/*
 struct sk_buff {
   char cb[48];  // TODO: aligned(8)
   unsigned int len;
@@ -63,6 +68,7 @@ struct sk_buff {
 
   unsigned char *head;
 } __attribute__((preserve_access_index));
+*/
 
 // used by the send packet queuing engine to pass TCP per-packet
 // control information to the transmission code.
@@ -71,23 +77,6 @@ struct tcp_skb_cb {
 } __attribute__((preserve_access_index));
 
 #define TCP_SKB_CB(__skb) ((struct tcp_skb_cb *)&((__skb)->cb[0]))
-
-struct tcphdr {
-  // note: assuming little-endian.
-  __u16 res1 : 4, doff : 4, fin : 1, syn : 1, rst : 1, psh : 1, ack : 1,
-      urg : 1, ece : 1, cwr : 1;
-} __attribute__((preserve_access_index));
-
-#define SKB_TO_TCP_HDR(__skb) \
-  (struct tcphdr *)((__skb)->head + (__skb)->transport_header)
-
-struct iphdr {
-  __u8 tos;
-  __u8 ttl;
-} __attribute__((preserve_access_index));
-
-#define SKB_TO_IP_HDR(__skb) \
-  (struct iphdr *)((__skb)->head + (__skb)->network_header)
 
 /**
  * struct tcp_sock is the kernel representation of a TCP socket.
@@ -286,44 +275,39 @@ int BPF_PROG(tcp_estats_create_active, struct sock *sk) {
 }
 
 SEC("fentry/tcp_v4_do_rcv")
-int BPF_PROG(tcp_estats_update_segrecv, struct sock *sk, struct sk_buff *skb) {
+int BPF_PROG(tcp_estats_update_segrecv, struct sock *sk,
+             struct __sk_buff *skb) {
   if (!sk) return 0;
   if (!skb) return 0;
 
-  // TODO: uncomment all of this when I figure out the stack read failures
+  const struct sock_common *sk_comm = &(sk->__sk_common);
 
-  // struct sock_common *sk_comm = &(sk->__sk_common);
+  struct key key;
+  __builtin_memset(&key, 0, sizeof(key));
 
-  // struct key key;
-  //__builtin_memset(&key, 0, sizeof(key));
+  key.pid_tgid = bpf_get_current_pid_tgid();
+  key.saddr = sk_comm->skc_rcv_saddr;
+  key.daddr = sk_comm->skc_daddr;
+  key.sport = sk_comm->skc_num;
+  key.dport = bpf_ntohs(sk_comm->skc_dport);
 
-  // key.pid_tgid = bpf_get_current_pid_tgid();
-  // key.saddr = sk_comm->skc_rcv_saddr;
-  // key.daddr = sk_comm->skc_daddr;
-  // key.sport = sk_comm->skc_num;
-  // key.dport = bpf_ntohs(sk_comm->skc_dport);
+  submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
+                          TCP_ESTATS_PERF_TABLE_SEGSIN, 1);
 
-  // submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
-  //                         TCP_ESTATS_PERF_TABLE_SEGSIN, 1);
+  const void *data = (void *)(long)skb->data;
 
-  struct sk_buff sk_buf;
-  __builtin_memset(&sk_buf, 0, sizeof(sk_buf));
-  bpf_probe_read_kernel(&sk_buf, sizeof(struct sk_buff), (void *)skb);
+  struct tcphdr th;
+  __builtin_memset(&th, 0, sizeof(struct tcphdr));
+  bpf_probe_read(&th, sizeof(struct tcphdr), data + sizeof(struct iphdr));
 
-  bpf_printk("+++ sk_buf head: %d\n", sk_buf.head);
-
-  // struct tcphdr th;
-  //__builtin_memset(&th, 0, sizeof(th));
-
-  // const void *th_src = SKB_TO_TCP_HDR(&sk_buf);
-  // if (!th_src) return 0;
-  // bpf_probe_read_kernel(&th, sizeof(th), th_src);
+  bpf_printk("+++ skb->len: %d\n", skb->len);
+  bpf_printk("+++ tcphdr.doff : %d\n", th.doff);
   /*
-    if (sk_buf.len == th.doff * 4) {
+    if (skb->len == th.doff * 4) {
       const struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
       if (!ts) return 0;
 
-      if (TCP_SKB_CB(&sk_buf)->ack_seq == ts->snd_una) {
+      if (TCP_SKB_CB(skb)->ack_seq == ts->snd_una) {
         submit_stack_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
                                  TCP_ESTATS_STACK_TABLE_DUPACKSIN, 1);
       }
@@ -332,22 +316,20 @@ int BPF_PROG(tcp_estats_update_segrecv, struct sock *sk, struct sk_buff *skb) {
                               TCP_ESTATS_PERF_TABLE_DATASEGSIN, 1);
       submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
                               TCP_ESTATS_PERF_TABLE_DATAOCTETSIN,
-                              sk_buf.len - th.doff * 4);
-    }
+                              skb->len - th.doff * 4);
+    }*/
 
-    struct iphdr iph;
-    __builtin_memset(&iph, 0, sizeof(iph));
+  struct iphdr iph;
+  __builtin_memset(&iph, 0, sizeof(struct iphdr));
+  bpf_probe_read(&iph, sizeof(struct iphdr), data + sizeof(struct ethhdr));
 
-    const void *iph_src = SKB_TO_IP_HDR(&sk_buf);
-    if (!iph_src) return 0;
+  bpf_printk("+++ iphdr : %d %d\n", iph.tos, iph.ttl);
 
-    bpf_probe_read_kernel(&iph, sizeof(iph), iph_src);
+  submit_path_table_entry(&key, TCP_ESTATS_OPERATION_SET,
+                          TCP_ESTATS_PATH_TABLE_IPTTL, iph.ttl);
+  submit_path_table_entry(&key, TCP_ESTATS_OPERATION_SET,
+                          TCP_ESTATS_PATH_TABLE_IPTOSIN, iph.tos);
 
-    submit_path_table_entry(&key, TCP_ESTATS_OPERATION_SET,
-                            TCP_ESTATS_PATH_TABLE_IPTTL, iph.ttl);
-    submit_path_table_entry(&key, TCP_ESTATS_OPERATION_SET,
-                            TCP_ESTATS_PATH_TABLE_IPTOSIN, iph.tos);
-                            */
   return 0;
 }
 
@@ -359,7 +341,7 @@ int BPF_PROG(tcp_estats_update_segrecv, struct sock *sk, struct sk_buff *skb) {
 
 SEC("fexit/tcp_v4_do_rcv")
 int BPF_PROG(tcp_estats_update_finish_segrecv, struct sock *sk,
-             struct sk_buff *skb) {
+             struct __sk_buff *skb) {
   /* THIS WORKS
 if (!sk) return 0;
 if (!skb) return 0;
