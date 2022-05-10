@@ -294,16 +294,19 @@ int BPF_PROG(tcp_estats_update_segrecv, struct sock *sk,
   submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
                           TCP_ESTATS_PERF_TABLE_SEGSIN, 1);
 
-  const void *data = (void *)(long)skb->data;
+  struct __sk_buff skbuff;
+  __builtin_memset(&skbuff, 0,  sizeof(struct __sk_buff));
+  bpf_probe_read(&skbuff, sizeof(struct __sk_buff), skb);
+
+  const void *data = (void *)(long)skbuff.data;
 
   struct tcphdr th;
   __builtin_memset(&th, 0, sizeof(struct tcphdr));
   bpf_probe_read(&th, sizeof(struct tcphdr), data + sizeof(struct iphdr));
 
-  bpf_printk("+++ skb->len: %d\n", skb->len);
+  bpf_printk("+++ skbuff.len: %d\n", skbuff.len);
   bpf_printk("+++ tcphdr.doff : %d\n", th.doff);
-  /*
-    if (skb->len == th.doff * 4) {
+    if (skbuff.len == th.doff * 4) {
       const struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
       if (!ts) return 0;
 
@@ -316,8 +319,8 @@ int BPF_PROG(tcp_estats_update_segrecv, struct sock *sk,
                               TCP_ESTATS_PERF_TABLE_DATASEGSIN, 1);
       submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
                               TCP_ESTATS_PERF_TABLE_DATAOCTETSIN,
-                              skb->len - th.doff * 4);
-    }*/
+                              skbuff.len - th.doff * 4);
+    }
 
   struct iphdr iph;
   __builtin_memset(&iph, 0, sizeof(struct iphdr));

@@ -10,7 +10,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"log"
-	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -150,11 +149,11 @@ func readLoop[V tcp_estats.Vars](rd *ringbuf.Reader) {
 
 		// parse to structure
 		if err := binary.Read(bytes.NewBuffer(record.RawSample), endian.Native, &entry); err != nil {
-			log.Printf("parsing entry: %v", err)
+			//log.Printf("parsing entry: %v", err)
 			continue
 		}
 
-		log.Printf("read %+v", entry)
+		//log.Printf("read %+v", entry)
 
 		// There might be a way to get away with a RLock here followed
 		// by a Lock in the unlikely case we need to insert, but just taking
@@ -170,10 +169,4 @@ func readLoop[V tcp_estats.Vars](rd *ringbuf.Reader) {
 
 		tcp_estats.DoOp[V](e, entry)
 	}
-}
-
-func intToIP(num uint32) net.IP {
-	ip := make(net.IP, 4)
-	endian.Native.PutUint32(ip, num)
-	return ip
 }

@@ -10,8 +10,12 @@
 package tcp_estats
 
 import (
+	"fmt"
 	"log"
+	"net"
 	"sync"
+
+	"tcp_estats-ebpf/endian"
 )
 
 type Operation uint32
@@ -262,19 +266,19 @@ func DoOp[V Vars](e *Estats, entry Entry) {
 
 	switch entry.Op {
 	case OPERATION_SET:
-		log.Printf(" . setting %v to %d", v, entry.Val)
+		//log.Printf(" . setting %v to %d", v, entry.Val)
 		t.M[v] = entry.Val
 	case OPERATION_ADD:
-		log.Printf(" . adding %v to %d", v, entry.Val)
+		//log.Printf(" . adding %v to %d", v, entry.Val)
 		t.M[v] += entry.Val
 	case OPERATION_SUB:
-		log.Printf(" . subtracting %d from %v", entry.Val, v)
+		//log.Printf(" . subtracting %d from %v", entry.Val, v)
 		t.M[v] -= entry.Val
 	case OPERATION_MAX:
-		log.Printf(" . setting max to %v", v)
+		//log.Printf(" . setting max to %v", v)
 		t.M[v] = max(t.M[v], entry.Val)
 	case OPERATION_MIN:
-		log.Printf(" . setting min to %v", v)
+		//log.Printf(" . setting min to %v", v)
 		t.M[v] = min(t.M[v], entry.Val)
 	}
 }
@@ -294,3 +298,14 @@ type Entry struct {
 	Var uint32
 	Val uint32
 }
+
+func (k Key) String() string {
+	return fmt.Sprintf("[P: %d, S: %s:%d, D: %s:%d]", k.PidTgid, intToIP(k.Saddr), k.Sport, intToIP(k.Daddr), k.Dport)
+}
+
+func intToIP(num uint32) net.IP {
+	ip := make(net.IP, 4)
+	endian.Native.PutUint32(ip, num)
+	return ip
+}
+

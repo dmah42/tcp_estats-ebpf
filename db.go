@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"sync"
+
 	"tcp_estats-ebpf/tcp_estats"
 )
 
@@ -22,5 +23,12 @@ func NewDB() *db {
 func (db *db) String() string {
 	db.RLock()
 	defer db.RUnlock()
-	return fmt.Sprintf("%+v", db.m)
+
+	s := "-+= DB =+-\n"
+
+	for key, stats := range db.m {
+		s += fmt.Sprintf("%s: %s\n", key, stats)
+	}
+
+	return s
 }
