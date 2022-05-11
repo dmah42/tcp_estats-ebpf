@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -122,6 +123,7 @@ func main() {
 	defer extras_rd.Close()
 
 	// Start your engines
+	log.Println("starting read loops..")
 	go readLoop[tcp_estats.GlobalVar](global_rd)
 	go readLoop[tcp_estats.ConnectionVar](conn_rd)
 	go readLoop[tcp_estats.PerfVar](perf_rd)
@@ -132,7 +134,8 @@ func main() {
 
 	<-stopper
 
-	log.Printf("%s", estats_db)
+	log.Println(".. stopped read loops")
+	fmt.Printf("%s", estats_db)
 }
 
 func readLoop[V tcp_estats.Vars](rd *ringbuf.Reader) {
@@ -141,7 +144,7 @@ func readLoop[V tcp_estats.Vars](rd *ringbuf.Reader) {
 		record, err := rd.Read()
 		if err != nil {
 			if errors.Is(err, ringbuf.ErrClosed) {
-				log.Println("received signal, exiting..")
+				log.Println("received signal, exiting loop..")
 				return
 			}
 			continue
