@@ -55,21 +55,6 @@ struct sock {
   struct sock_common __sk_common;
 } __attribute__((preserve_access_index));
 
-/**
- * struct sk_buff is the network layer socket buffer representation.
- */
-/*
-struct sk_buff {
-  char cb[48];  // TODO: aligned(8)
-  unsigned int len;
-
-  __u16 transport_header;
-  __u16 network_header;
-
-  unsigned char *head;
-} __attribute__((preserve_access_index));
-*/
-
 // used by the send packet queuing engine to pass TCP per-packet
 // control information to the transmission code.
 struct tcp_skb_cb {
@@ -173,7 +158,6 @@ SUBMIT_FUNC(stack)
 SUBMIT_FUNC(app)
 SUBMIT_FUNC(extras)
 
-/*
 static int tcp_estats_create(const struct key *key, const struct tcp_sock *ts,
                              int addr_family, int active) {
   if (!ts) return 0;
@@ -226,12 +210,9 @@ static int tcp_estats_create(const struct key *key, const struct tcp_sock *ts,
 
   return 0;
 }
-*/
 
 SEC("fexit/tcp_create_openreq_child")
 int BPF_PROG(tcp_estats_create_inactive, struct sock *sk) {
-  return 0;
-  /* THIS WORKS
   if (!sk) return 0;
   struct sock_common *sk_comm = &(sk->__sk_common);
 
@@ -248,13 +229,11 @@ int BPF_PROG(tcp_estats_create_inactive, struct sock *sk) {
   struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
   if (!ts) return 0;
   return tcp_estats_create(&key, ts, AF_INET, TCP_ESTATS_INACTIVE);
-  */
 }
 
 SEC("fexit/tcp_init_sock")
 int BPF_PROG(tcp_estats_create_active, struct sock *sk) {
   return 0;
-  /* THIS WORKS
   if (!sk) return 0;
   struct sock_common *sk_comm = &(sk->__sk_common);
 
@@ -271,7 +250,6 @@ int BPF_PROG(tcp_estats_create_active, struct sock *sk) {
   struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
   if (!ts) return 0;
   return tcp_estats_create(&key, ts, AF_INET, TCP_ESTATS_ACTIVE);
-  */
 }
 
 SEC("fentry/tcp_v4_do_rcv")
@@ -295,7 +273,7 @@ int BPF_PROG(tcp_estats_update_segrecv, struct sock *sk,
                           TCP_ESTATS_PERF_TABLE_SEGSIN, 1);
 
   struct __sk_buff skbuff;
-  __builtin_memset(&skbuff, 0,  sizeof(struct __sk_buff));
+  __builtin_memset(&skbuff, 0, sizeof(struct __sk_buff));
   bpf_probe_read(&skbuff, sizeof(struct __sk_buff), skb);
 
   const void *data = (void *)(long)skbuff.data;
@@ -304,29 +282,25 @@ int BPF_PROG(tcp_estats_update_segrecv, struct sock *sk,
   __builtin_memset(&th, 0, sizeof(struct tcphdr));
   bpf_probe_read(&th, sizeof(struct tcphdr), data + sizeof(struct iphdr));
 
-  bpf_printk("+++ skbuff.len: %d\n", skbuff.len);
-  bpf_printk("+++ tcphdr.doff : %d\n", th.doff);
-    if (skbuff.len == th.doff * 4) {
-      const struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
-      if (!ts) return 0;
+  if (skbuff.len == th.doff * 4) {
+    const struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
+    if (!ts) return 0;
 
-      if (TCP_SKB_CB(skb)->ack_seq == ts->snd_una) {
-        submit_stack_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
-                                 TCP_ESTATS_STACK_TABLE_DUPACKSIN, 1);
-      }
-    } else {
-      submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
-                              TCP_ESTATS_PERF_TABLE_DATASEGSIN, 1);
-      submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
-                              TCP_ESTATS_PERF_TABLE_DATAOCTETSIN,
-                              skbuff.len - th.doff * 4);
+    if (TCP_SKB_CB(skb)->ack_seq == ts->snd_una) {
+      submit_stack_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
+                               TCP_ESTATS_STACK_TABLE_DUPACKSIN, 1);
     }
+  } else {
+    submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
+                            TCP_ESTATS_PERF_TABLE_DATASEGSIN, 1);
+    submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
+                            TCP_ESTATS_PERF_TABLE_DATAOCTETSIN,
+                            skbuff.len - th.doff * 4);
+  }
 
   struct iphdr iph;
   __builtin_memset(&iph, 0, sizeof(struct iphdr));
   bpf_probe_read(&iph, sizeof(struct iphdr), data + sizeof(struct ethhdr));
-
-  bpf_printk("+++ iphdr : %d %d\n", iph.tos, iph.ttl);
 
   submit_path_table_entry(&key, TCP_ESTATS_OPERATION_SET,
                           TCP_ESTATS_PATH_TABLE_IPTTL, iph.ttl);
@@ -345,45 +319,43 @@ int BPF_PROG(tcp_estats_update_segrecv, struct sock *sk,
 SEC("fexit/tcp_v4_do_rcv")
 int BPF_PROG(tcp_estats_update_finish_segrecv, struct sock *sk,
              struct __sk_buff *skb) {
-  /* THIS WORKS
-if (!sk) return 0;
-if (!skb) return 0;
+  if (!sk) return 0;
+  if (!skb) return 0;
 
-struct sock_common *sk_comm = &(sk->__sk_common);
+  struct sock_common *sk_comm = &(sk->__sk_common);
 
-struct key key;
-__builtin_memset(&key, 0, sizeof(key));
+  struct key key;
+  __builtin_memset(&key, 0, sizeof(key));
 
-key.pid_tgid = bpf_get_current_pid_tgid();
-key.saddr = sk_comm->skc_rcv_saddr;
-key.daddr = sk_comm->skc_daddr;
-key.sport = sk_comm->skc_num;
-key.dport = bpf_ntohs(sk_comm->skc_dport);
+  key.pid_tgid = bpf_get_current_pid_tgid();
+  key.saddr = sk_comm->skc_rcv_saddr;
+  key.daddr = sk_comm->skc_daddr;
+  key.sport = sk_comm->skc_num;
+  key.dport = bpf_ntohs(sk_comm->skc_dport);
 
-struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
-if (!ts) return 0;
+  struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
+  if (!ts) return 0;
 
-__u32 mss = ts->mss_cache;
-__u32 cwnd = ts->snd_cwnd * mss;
-if (ts->snd_cwnd <= ts->snd_ssthresh) {
-submit_stack_table_entry(&key, TCP_ESTATS_OPERATION_MAX,
-                TCP_ESTATS_STACK_TABLE_MAXSSCWND, cwnd);
-} else {
-submit_stack_table_entry(&key, TCP_ESTATS_OPERATION_MAX,
-                TCP_ESTATS_STACK_TABLE_MAXCACWND, cwnd);
-}
+  __u32 mss = ts->mss_cache;
+  __u32 cwnd = ts->snd_cwnd * mss;
+  if (ts->snd_cwnd <= ts->snd_ssthresh) {
+    submit_stack_table_entry(&key, TCP_ESTATS_OPERATION_MAX,
+                             TCP_ESTATS_STACK_TABLE_MAXSSCWND, cwnd);
+  } else {
+    submit_stack_table_entry(&key, TCP_ESTATS_OPERATION_MAX,
+                             TCP_ESTATS_STACK_TABLE_MAXCACWND, cwnd);
+  }
 
-submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_MAX,
-             TCP_ESTATS_PERF_TABLE_MAXPIPESIZE,
-             TCP_PACKETS_IN_FLIGHT(ts) * mss);
+  submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_MAX,
+                          TCP_ESTATS_PERF_TABLE_MAXPIPESIZE,
+                          TCP_PACKETS_IN_FLIGHT(ts) * mss);
 
-if (ts->snd_ssthresh < TCP_INFINITE_SSTHRESH) {
-__u32 ssthresh = ts->snd_ssthresh * mss;
-submit_stack_table_entry(&key, TCP_ESTATS_OPERATION_MAX,
-                TCP_ESTATS_STACK_TABLE_MAXSSTHRESH, ssthresh);
-submit_stack_table_entry(&key, TCP_ESTATS_OPERATION_MIN,
-                TCP_ESTATS_STACK_TABLE_MAXSSTHRESH, ssthresh);
-}
-*/
+  if (ts->snd_ssthresh < TCP_INFINITE_SSTHRESH) {
+    __u32 ssthresh = ts->snd_ssthresh * mss;
+    submit_stack_table_entry(&key, TCP_ESTATS_OPERATION_MAX,
+                             TCP_ESTATS_STACK_TABLE_MAXSSTHRESH, ssthresh);
+    submit_stack_table_entry(&key, TCP_ESTATS_OPERATION_MIN,
+                             TCP_ESTATS_STACK_TABLE_MAXSSTHRESH, ssthresh);
+  }
   return 0;
 }
