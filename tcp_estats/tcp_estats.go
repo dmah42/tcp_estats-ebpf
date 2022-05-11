@@ -193,6 +193,18 @@ type Table[V Vars] struct {
 	M map[V]uint32
 }
 
+func tableString[V Vars](t Table[V]) string {
+	t.RLock()
+	defer t.RUnlock()
+
+	s := ""
+	for k, v := range t.M {
+		s += fmt.Sprintf("  %s: %d\n", k, v)
+	}
+
+	return s
+}
+
 type tables struct {
 	global     Table[GlobalVar]
 	connection Table[ConnectionVar]
@@ -217,6 +229,25 @@ func New() *Estats {
 	e.tables.app = Table[AppVar]{M: make(map[AppVar]uint32)}
 	e.tables.extras = Table[ExtrasVar]{M: make(map[ExtrasVar]uint32)}
 	return e
+}
+
+func (e Estats) String() string {
+	s := "..- global -..\n"
+	s += tableString(e.tables.global) + "\n"
+	s += "..- connection -..\n"
+	s += tableString(e.tables.connection) + "\n"
+	s += "..- perf -..\n"
+	s += tableString(e.tables.perf) + "\n"
+	s += "..- path -..\n"
+	s += tableString(e.tables.path) + "\n"
+	s += "..- stack -..\n"
+	s += tableString(e.tables.stack) + "\n"
+	s += "..- app -..\n"
+	s += tableString(e.tables.app) + "\n"
+	s += "..- extras -..\n"
+	s += tableString(e.tables.extras) + "\n"
+
+	return s
 }
 
 func (e *Estats) GetTableForVar(v any) any {
@@ -300,7 +331,7 @@ type Entry struct {
 }
 
 func (k Key) String() string {
-	return fmt.Sprintf("[P: %d, S: %s:%d, D: %s:%d]", k.PidTgid, intToIP(k.Saddr), k.Sport, intToIP(k.Daddr), k.Dport)
+	return fmt.Sprintf("[P: %d, S: %s:%d, D: %s:%d]\n", k.PidTgid, intToIP(k.Saddr), k.Sport, intToIP(k.Daddr), k.Dport)
 }
 
 func intToIP(num uint32) net.IP {
