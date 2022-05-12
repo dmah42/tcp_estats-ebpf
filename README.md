@@ -21,9 +21,7 @@ source for an estats-patched 3.16.0 kernel.  The most relevant parts are:
 
 ## approach
 
-### attempt three
-
-#### BPF
+### BPF (C)
 Created a ring buffer per estats table and a "global" one (which isn't entirely
 in line with the RFC but allows things to be more generic). Each entry contains:
 * a key to identify the socket: PID_TGID:saddr:sport:daddr:dport
@@ -35,7 +33,7 @@ in line with the RFC but allows things to be more generic). Each entry contains:
 Care needs to be taken to ensure the variable matches the ringbuffer so the right
 variable goes to the right table.
 
-#### Go
+### Go
 A single goroutine that reads from a ringbuffer and populates the tables. All the
 tables are maps guarded with rwmutexes (because we smart) and there's a higher
 level rwmutex protecting the tables themselves, created the first time we encounter
@@ -44,7 +42,27 @@ a key we haven't seen before.
 Go 1.18+ is necessary as the project requires generics to do some type-agnostic stuff
 and enable the single read loop.
 
-### attempt two (archived)
+## current status
+program runs successfully, but the tcp estats will need validation against a "real"
+version at some point.
+
+all values are defined and ready, but only the following hooks have been implemented:
+
+* `tcp_create_openreq_child` (exit)
+* `tcp_init_sock` (exit)
+* `tcp_v4_do_rcv` (entry and exit)
+
+## next steps
+
+* more implementation of stats collection, requiring more program hooks.
+* tests? :D
+* validation of results
+
+## appendix
+
+### old approaches
+
+#### ring buffer per table
 Create a ring buffer per estats table, and one more for stats creation. Each
 entry in the ring buffer would contain:
 
@@ -62,24 +80,10 @@ We may need a way to wait on the creation ringbuffer when filling in stats, just
 in case there's a race condition between the go routines and we get a stats
 operation on a socket which we don't know about yet.
 
-### attempt one (archived)
+#### all the logic in C
 The approach I'll take is to replicate the estats structs in the eBPF layer, and
 hook in either through kprobes or existing function calls to populate the estats
 appropriately.
 
 This approach didn't really work as it requires a lot of logic in the eBPF layer
 including allocation to do it well, and I think there's a better approach...
-
-## current status
-program runs successfully, but it's unclear if it's working as intended as the
-incoming keys seem to have all 0s for the entry keys.  though the operators,
-variables, and values all come through appropriately.
-
-output is just a dump of the (optimistically named) DB on sigterm.
-
-## next steps
-more implementation of stats collection, requiring more program hooks.
-
-...
-
-tests? :D
