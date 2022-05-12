@@ -146,7 +146,9 @@ enum tcp_estats_stack_table {
 enum tcp_estats_app_table {
   TCP_ESTATS_APP_TABLE_SNDMAX,
   TCP_ESTATS_APP_TABLE_THRUOCTETSACKED,
-  // TODO: more
+	TCP_ESTATS_APP_TABLE_THRUOCTETSRECEIVED,
+	TCP_ESTATS_APP_TABLE_MAXAPPWQUEUE,
+	TCP_ESTATS_APP_TABLE_MAXAPPRQUEUE
 };
 
 enum tcp_estats_extras_table {

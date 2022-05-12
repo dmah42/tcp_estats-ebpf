@@ -158,6 +158,19 @@ SUBMIT_FUNC(stack)
 SUBMIT_FUNC(app)
 SUBMIT_FUNC(extras)
 
+static struct key create_key(const struct sock_common *sk_comm) {
+  struct key key;
+  __builtin_memset(&key, 0, sizeof(key));
+
+  key.pid_tgid = bpf_get_current_pid_tgid();
+  key.saddr = sk_comm->skc_rcv_saddr;
+  key.daddr = sk_comm->skc_daddr;
+  key.sport = sk_comm->skc_num;
+  key.dport = bpf_ntohs(sk_comm->skc_dport);
+
+  return key;
+}
+
 static int tcp_estats_create(const struct key *key, const struct tcp_sock *ts,
                              int addr_family, int active) {
   if (!ts) return 0;
@@ -216,14 +229,7 @@ int BPF_PROG(tcp_estats_create_inactive, struct sock *sk) {
   if (!sk) return 0;
   struct sock_common *sk_comm = &(sk->__sk_common);
 
-  struct key key;
-  __builtin_memset(&key, 0, sizeof(key));
-
-  key.pid_tgid = bpf_get_current_pid_tgid();
-  key.saddr = sk_comm->skc_rcv_saddr;
-  key.daddr = sk_comm->skc_daddr;
-  key.sport = sk_comm->skc_num;
-  key.dport = bpf_ntohs(sk_comm->skc_dport);
+  struct key key = create_key(sk_comm);
 
   // TODO: support tcp6_sock if family is AF_INET6.
   struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
@@ -237,14 +243,7 @@ int BPF_PROG(tcp_estats_create_active, struct sock *sk) {
   if (!sk) return 0;
   struct sock_common *sk_comm = &(sk->__sk_common);
 
-  struct key key;
-  __builtin_memset(&key, 0, sizeof(key));
-
-  key.pid_tgid = bpf_get_current_pid_tgid();
-  key.saddr = sk_comm->skc_rcv_saddr;
-  key.daddr = sk_comm->skc_daddr;
-  key.sport = sk_comm->skc_num;
-  key.dport = bpf_ntohs(sk_comm->skc_dport);
+  struct key key = create_key(sk_comm);
 
   // TODO: support tcp6_sock if family is AF_INET6.
   struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
@@ -260,14 +259,7 @@ int BPF_PROG(tcp_estats_update_segrecv, struct sock *sk,
 
   const struct sock_common *sk_comm = &(sk->__sk_common);
 
-  struct key key;
-  __builtin_memset(&key, 0, sizeof(key));
-
-  key.pid_tgid = bpf_get_current_pid_tgid();
-  key.saddr = sk_comm->skc_rcv_saddr;
-  key.daddr = sk_comm->skc_daddr;
-  key.sport = sk_comm->skc_num;
-  key.dport = bpf_ntohs(sk_comm->skc_dport);
+  struct key key = create_key(sk_comm);
 
   submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
                           TCP_ESTATS_PERF_TABLE_SEGSIN, 1);
@@ -324,14 +316,7 @@ int BPF_PROG(tcp_estats_update_finish_segrecv, struct sock *sk,
 
   struct sock_common *sk_comm = &(sk->__sk_common);
 
-  struct key key;
-  __builtin_memset(&key, 0, sizeof(key));
-
-  key.pid_tgid = bpf_get_current_pid_tgid();
-  key.saddr = sk_comm->skc_rcv_saddr;
-  key.daddr = sk_comm->skc_daddr;
-  key.sport = sk_comm->skc_num;
-  key.dport = bpf_ntohs(sk_comm->skc_dport);
+  struct key key = create_key(sk_comm);
 
   struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
   if (!ts) return 0;
