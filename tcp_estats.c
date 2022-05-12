@@ -13,25 +13,34 @@
 #include <linux/types.h>
 #include <unistd.h>
 
+#include "tcp_sock.h"
+
 #define AF_INET 2
 #define AF_INET6 10
 
 #define ESTATS_INF32 0xffffffff
 #define TCP_INFINITE_SSTHRESH 0x7fffffff
 
+// TODO: figure out how to get these from /include/net/tcp.h
+#define TCP_ECN_OK 1
+#define TCP_ECN_QUEUE_CWR 2
+#define TCP_ECN_DEMAND_CWR 4
+#define TCP_ECN_SEEN 8
+
+// TODO: get this from /include/net/inet_ecn.h
+enum {
+  INET_ECN_NOT_ECT = 0,
+  INET_ECN_ECT_1 = 1,
+  INET_ECN_ECT_0 = 2,
+  INET_ECN_CE = 3,
+  INET_ECN_MASK = 3,
+};
+
 // dual-license GPL so i can use useful functions like bpf_probe_read
 // and bpf_printk. you know, the ones you need rarely. :|
 char __license[] SEC("license") = "GPL";
 
-/**
- * preseve_access_index preserves the offset of the fields in the original
- * kernel struct so we only need to declare the struct and the fields the
- * program requires.
- **/
-
-/**
- * struct sock_common is the minimal network layer representation of sockets.
- **/
+// struct sock_common is the minimal network layer representation of sockets.
 struct sock_common {
   union {
     struct {
@@ -48,9 +57,7 @@ struct sock_common {
   short unsigned int skc_family;
 } __attribute__((preserve_access_index));
 
-/**
- * struct sock is the network layer representation of sockets.
- **/
+// struct sock is the network layer representation of sockets.
 struct sock {
   struct sock_common __sk_common;
 } __attribute__((preserve_access_index));
@@ -58,37 +65,17 @@ struct sock {
 // used by the send packet queuing engine to pass TCP per-packet
 // control information to the transmission code.
 struct tcp_skb_cb {
+	__u32 seq;
+	__u32 end_seq;
   __u32 ack_seq;
+
+  __u8 tcp_flags;
+  __u8 ip_dsfield;
 } __attribute__((preserve_access_index));
 
 #define TCP_SKB_CB(__skb) ((struct tcp_skb_cb *)&((__skb)->cb[0]))
 
-/**
- * struct tcp_sock is the kernel representation of a TCP socket.
- **/
-struct tcp_sock {
-  // RFC 793
-  __u32 segs_in;
-  __u32 rcv_nxt;
-  __u32 snd_nxt;
-  __u32 segs_out;
-  __u32 snd_una;
-  __u32 mss_cache;
-
-  // RTT measurement
-  __u32 srtt_us;
-  __u32 packets_out;
-  __u32 retrans_out;
-
-  // slow start and cong control
-  __u32 snd_ssthresh;
-  __u32 snd_cwnd;
-  __u32 lost_out;
-  __u32 sacked_out;
-
-  __u32 total_retrans;
-} __attribute__((preserve_access_index));
-
+// define a ringbuf per table
 struct {
   __uint(type, BPF_MAP_TYPE_RINGBUF);
   __uint(max_entries, 1 << 24);
@@ -342,5 +329,54 @@ int BPF_PROG(tcp_estats_update_finish_segrecv, struct sock *sk,
     submit_stack_table_entry(&key, TCP_ESTATS_OPERATION_MIN,
                              TCP_ESTATS_STACK_TABLE_MAXSSTHRESH, ssthresh);
   }
+  return 0;
+}
+
+static void TCP_ECN_check_ce(struct key key, const struct tcp_sock *ts,
+                             const struct __sk_buff *skb) {
+  if (!(ts->ecn_flags & TCP_ECN_OK)) return;
+
+  switch (TCP_SKB_CB(skb)->ip_dsfield & INET_ECN_MASK) {
+    case INET_ECN_CE:
+      submit_path_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
+                              TCP_ESTATS_PATH_TABLE_CERCVD, 1);
+      if (ts->ecn_flags & TCP_ECN_DEMAND_CWR) {
+        submit_path_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
+                                TCP_ESTATS_PATH_TABLE_ECESENT, 1);
+      }
+  }
+}
+
+SEC("fexit/tcp_event_data_recv")
+int BPF_PROG(tcp_event_data_recv, struct sock *sk, struct __sk_buff *skb) {
+  if (!sk) return 0;
+  if (!skb) return 0;
+
+  struct sock_common *sk_comm = &(sk->__sk_common);
+
+  struct key key = create_key(sk_comm);
+
+  struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
+  if (!ts) return 0;
+
+  TCP_ECN_check_ce(key, ts, skb);
+
+  return 0;
+}
+
+SEC("fentry/tcp_data_queue_ofo")
+int BPF_PROG(tcp_data_queue_ofo, struct sock *sk, struct __sk_buff *skb) {
+  if (!sk) return 0;
+  if (!skb) return 0;
+
+  struct sock_common *sk_comm = &(sk->__sk_common);
+
+  struct key key = create_key(sk_comm);
+
+  struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
+  if (!ts) return 0;
+
+  TCP_ECN_check_ce(key, ts, skb);
+
   return 0;
 }
