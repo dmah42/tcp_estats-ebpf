@@ -380,3 +380,28 @@ int BPF_PROG(tcp_data_queue_ofo, struct sock *sk, struct __sk_buff *skb) {
 
   return 0;
 }
+
+SEC("fentry/tcp_rtt_estimator")
+int BPF_PROG(tcp_rtt_estimator, struct sock *sk, long mrtt_us) {
+	if (!sk) return 0;
+
+	struct sock_common *sk_comm = &(sk->__sk_common);
+	struct key key = create_key(sk_comm);
+
+	struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
+	if (!ts) return 0;
+
+	// TODO: read sysctl from kernel
+	static int sysctl_tcp_link_latency = 0;
+	if (sysctl_tcp_link_latency > 0) {
+		if (mrtt_us > sysctl_tcp_link_latency) {
+			submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
+					TCP_ESTATS_PERF_TABLE_HIGHRTTM, 1);
+		} else {
+			submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
+					TCP_ESTATS_PERF_TABLE_NORMALRTTM, 1);
+		}
+	}
+
+	return 0;
+}
