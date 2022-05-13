@@ -77,9 +77,9 @@ struct tcp_skb_cb {
 #define TCP_SKB_CB(__skb) ((struct tcp_skb_cb *)&((__skb)->cb[0]))
 
 struct tcp_sacktag_state {
-	int reord;
-	int fack_count;
-	int flag;
+  int reord;
+  int fack_count;
+  int flag;
 } __attribute__((preserve_access_index));
 
 // define a ringbuf per table

@@ -1,9 +1,9 @@
 package tcp_estats
 
 type Address struct {
-	IsIPv4	bool
-	addr	uint32
-	addr6	uint64
+	IsIPv4 bool
+	addr   uint32
+	addr6  uint64
 }
 
 func NewIPv4(ip uint32) *Address {
@@ -21,11 +21,15 @@ func NewIPv6(ip uint64) *Address {
 }
 
 func (a Address) GetIPv4() uint32 {
-	if (!a.IsIPv4) { panic("not IPv4") }
+	if !a.IsIPv4 {
+		panic("not IPv4")
+	}
 	return a.addr
 }
 
 func (a Address) GetIPv6() uint64 {
-	if (a.IsIPv4) { panic("not IPv6") }
+	if a.IsIPv4 {
+		panic("not IPv6")
+	}
 	return a.addr6
 }

@@ -200,15 +200,17 @@ func tableString[V Vars](t Table[V]) string {
 
 	keyLen := 0
 	for k, _ := range t.M {
-		keyLen = max(len(string(k)), keyLen)
+		keyLen = max(len(fmt.Sprint(k)), keyLen)
 	}
 
-	s := fmt.Sprintf("+%s+%s+\n", strings.Repeat("-", keyLen + 2), strings.Repeat("-", 8))
+	s := fmt.Sprintf("+%s+%s+\n", strings.Repeat("-", keyLen+2), strings.Repeat("-", 10))
 
-	rowFormatStr := fmt.Sprintf("| %%%d%%s | %%%d%%d |\n", keyLen, 8)
+	rowFormatStr := fmt.Sprintf("| %%%ds | %%%dd |\n", keyLen, 8)
 	for k, v := range t.M {
 		s += fmt.Sprintf(rowFormatStr, k, v)
 	}
+
+	s += fmt.Sprintf("+%s+%s+", strings.Repeat("-", keyLen+2), strings.Repeat("-", 10))
 
 	return s
 }
@@ -280,14 +282,14 @@ func (e *Estats) GetTableForVar(v any) any {
 	}
 }
 
-func max[T int|uint32](x, y T) T {
+func max[T int | uint32](x, y T) T {
 	if x < y {
 		return y
 	}
 	return x
 }
 
-func min[T int|uint32](x, y T) T {
+func min[T int | uint32](x, y T) T {
 	if x > y {
 		return y
 	}
@@ -347,4 +349,3 @@ func intToIP(num uint32) net.IP {
 	endian.Native.PutUint32(ip, num)
 	return ip
 }
-

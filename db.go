@@ -27,7 +27,7 @@ func (db *db) String() string {
 	s := "-+= DB =+-\n"
 
 	for key, stats := range db.m {
-		s += fmt.Sprintf("%s: %s\n", key, stats)
+		s += fmt.Sprintf("%s\n%s\n", key, stats)
 	}
 
 	return s
