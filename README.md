@@ -52,7 +52,7 @@ all values are defined and ready, but only the following hooks have been impleme
 * `tcp_init_sock` (exit)
 * `tcp_v4_do_rcv` (entry and exit)
 
-### in turms of variables
+### in terms of variables
 
 #### tcp_estats_global_table
 - [x] TCP_ESTATS_GLOBAL_TABLE_LIMSTATE,
