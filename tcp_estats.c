@@ -7,6 +7,7 @@
 #include <bpf/bpf_tracing.h>
 #include <errno.h>
 #include <linux/bpf.h>
+#include <linux/const.h>
 #include <linux/if_ether.h>
 #include <linux/ip.h>
 #include <linux/tcp.h>
@@ -65,8 +66,8 @@ struct sock {
 // used by the send packet queuing engine to pass TCP per-packet
 // control information to the transmission code.
 struct tcp_skb_cb {
-	__u32 seq;
-	__u32 end_seq;
+  __u32 seq;
+  __u32 end_seq;
   __u32 ack_seq;
 
   __u8 tcp_flags;
@@ -74,6 +75,12 @@ struct tcp_skb_cb {
 } __attribute__((preserve_access_index));
 
 #define TCP_SKB_CB(__skb) ((struct tcp_skb_cb *)&((__skb)->cb[0]))
+
+struct tcp_sacktag_state {
+	int reord;
+	int fack_count;
+	int flag;
+} __attribute__((preserve_access_index));
 
 // define a ringbuf per table
 struct {
@@ -383,25 +390,25 @@ int BPF_PROG(tcp_data_queue_ofo, struct sock *sk, struct __sk_buff *skb) {
 
 SEC("fentry/tcp_rtt_estimator")
 int BPF_PROG(tcp_rtt_estimator, struct sock *sk, long mrtt_us) {
-	if (!sk) return 0;
+  if (!sk) return 0;
 
-	struct sock_common *sk_comm = &(sk->__sk_common);
-	struct key key = create_key(sk_comm);
+  struct sock_common *sk_comm = &(sk->__sk_common);
+  struct key key = create_key(sk_comm);
 
-	struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
-	if (!ts) return 0;
+  struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
+  if (!ts) return 0;
 
-	// TODO: read sysctl from kernel
-	static int sysctl_tcp_link_latency = 0;
-	if (sysctl_tcp_link_latency > 0) {
-		if (mrtt_us > sysctl_tcp_link_latency) {
-			submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
-					TCP_ESTATS_PERF_TABLE_HIGHRTTM, 1);
-		} else {
-			submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
-					TCP_ESTATS_PERF_TABLE_NORMALRTTM, 1);
-		}
-	}
+  // TODO: read sysctl from kernel
+  static int sysctl_tcp_link_latency = 0;
+  if (sysctl_tcp_link_latency > 0) {
+    if (mrtt_us > sysctl_tcp_link_latency) {
+      submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
+                              TCP_ESTATS_PERF_TABLE_HIGHRTTM, 1);
+    } else {
+      submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
+                              TCP_ESTATS_PERF_TABLE_NORMALRTTM, 1);
+    }
+  }
 
-	return 0;
+  return 0;
 }

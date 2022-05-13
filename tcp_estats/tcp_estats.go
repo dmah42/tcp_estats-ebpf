@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 	"sync"
 
 	"tcp_estats-ebpf/endian"
@@ -197,9 +198,16 @@ func tableString[V Vars](t Table[V]) string {
 	t.RLock()
 	defer t.RUnlock()
 
-	s := ""
+	keyLen := 0
+	for k, _ := range t.M {
+		keyLen = max(len(string(k)), keyLen)
+	}
+
+	s := fmt.Sprintf("+%s+%s+\n", strings.Repeat("-", keyLen + 2), strings.Repeat("-", 8))
+
+	rowFormatStr := fmt.Sprintf("| %%%d%%s | %%%d%%d |\n", keyLen, 8)
 	for k, v := range t.M {
-		s += fmt.Sprintf("  %s: %d\n", k, v)
+		s += fmt.Sprintf(rowFormatStr, k, v)
 	}
 
 	return s
@@ -272,14 +280,14 @@ func (e *Estats) GetTableForVar(v any) any {
 	}
 }
 
-func max(x, y uint32) uint32 {
+func max[T int|uint32](x, y T) T {
 	if x < y {
 		return y
 	}
 	return x
 }
 
-func min(x, y uint32) uint32 {
+func min[T int|uint32](x, y T) T {
 	if x > y {
 		return y
 	}
@@ -331,7 +339,7 @@ type Entry struct {
 }
 
 func (k Key) String() string {
-	return fmt.Sprintf("[P: %d, S: %s:%d, D: %s:%d]\n", k.PidTgid, intToIP(k.Saddr), k.Sport, intToIP(k.Daddr), k.Dport)
+	return fmt.Sprintf("[P: %d, S: %s:%d, D: %s:%d]", k.PidTgid, intToIP(k.Saddr), k.Sport, intToIP(k.Daddr), k.Dport)
 }
 
 func intToIP(num uint32) net.IP {

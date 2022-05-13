@@ -11,6 +11,8 @@ struct tcp_sock {
   __u32 snd_una;
   __u32 mss_cache;
 
+  __u32 max_window;
+
   // RTT measurement
   __u32 srtt_us;
   __u32 packets_out;
