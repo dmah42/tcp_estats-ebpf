@@ -28,6 +28,17 @@
 #define TCP_ECN_DEMAND_CWR 4
 #define TCP_ECN_SEEN 8
 
+#define TCPHDR_FIN 0x01
+#define TCPHDR_SYN 0x02
+#define TCPHDR_RST 0x04
+#define TCPHDR_PSH 0x08
+#define TCPHDR_ACK 0x10
+#define TCPHDR_URG 0x20
+#define TCPHDR_ECE 0x40
+#define TCPHDR_CWR 0x80
+
+#define TCPHDR_SYN_ECN (TCPHDR_SYN | TCPHDR_ECE | TCPHDR_CWR)
+
 // TODO: get this from /include/net/inet_ecn.h
 enum {
   INET_ECN_NOT_ECT = 0,
@@ -68,10 +79,19 @@ struct sock {
 struct tcp_skb_cb {
   __u32 seq;
   __u32 end_seq;
-  __u32 ack_seq;
 
+  union {
+    __u32 tcp_tw_isn;
+    struct {
+      __u16 tcp_gso_segs;
+      __u16 tcp_gso_size;
+    };
+  };
   __u8 tcp_flags;
+  __u8 sacked;
   __u8 ip_dsfield;
+
+  __u32 ack_seq;
 } __attribute__((preserve_access_index));
 
 #define TCP_SKB_CB(__skb) ((struct tcp_skb_cb *)&((__skb)->cb[0]))
@@ -296,6 +316,52 @@ int BPF_PROG(tcp_estats_update_segrecv, struct sock *sk,
   return 0;
 }
 
+SEC("fexit/__tcp_transmit_skb")
+int BPF_PROG(tcp_estats_update_segsend, struct sock *sk, struct __sk_buff *skb,
+             int clone_it, unsigned int gfp_mask, __u32 rcv_nxt) {
+  if (!sk) return 0;
+
+  struct sock_common *sk_comm = &(sk->__sk_common);
+  struct key key = create_key(sk_comm);
+
+  __u32 timestamp = (__u32)(bpf_ktime_get_ns() / 1000000000);
+
+  submit_global_table_entry(&key, TCP_ESTATS_OPERATION_SET,
+                            TCP_ESTATS_GLOBAL_TABLE_CURRENT_TS, timestamp);
+
+  const int pcount = TCP_SKB_CB(skb)->tcp_gso_segs;
+  const __u32 seq = TCP_SKB_CB(skb)->seq;
+  const __u32 end_seq = TCP_SKB_CB(skb)->end_seq;
+
+  submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
+                          TCP_ESTATS_PERF_TABLE_SEGSOUT, pcount);
+
+  const int data_len = end_seq - seq;
+  if (data_len > 0) {
+    submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
+                            TCP_ESTATS_PERF_TABLE_DATASEGSOUT, pcount);
+    submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
+                            TCP_ESTATS_PERF_TABLE_DATAOCTETSOUT, data_len);
+  }
+
+  // TODO: possible retransmission
+  /*
+        const int tcp_flags = TCP_SKB_CB(skb)->tcp_flags;
+  if (tcp_flags & TCPHDR_SYN) {
+          if (((struct inet_connection_sock *)sk)->icsk_retransmits)
+                  submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
+                                  TCP_ESTATS_PERF_TABLE_SEGSRETRANS, 1);
+  } else if (seq < snd_max) {
+          submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
+                          TCP_ESTATS_PERF_TABLE_SEGSRETRANS, pcount);
+          submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
+                          TCP_ESTATS_PERF_TABLE_OCTETSRETRANS, data_len);
+  }
+  */
+
+  return 0;
+}
+
 // Packets sent one on trans queue /minus/
 // Packets left network, but not acked /plus/
 // Packets fast retransmitted
@@ -309,7 +375,6 @@ int BPF_PROG(tcp_estats_update_finish_segrecv, struct sock *sk,
   if (!skb) return 0;
 
   struct sock_common *sk_comm = &(sk->__sk_common);
-
   struct key key = create_key(sk_comm);
 
   struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
