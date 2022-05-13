@@ -1,7 +1,7 @@
 OUTPUT=tcp_estats_ebpf
 
 .PHONY: build
-build: fmt gen $(OUTPUT)
+build: gen fmt $(OUTPUT)
 
 .PHONY: gen
 gen: tcp_estats.c tcp_estats.h tcp_estats/tcp_estats.go

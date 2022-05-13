@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sort"
 	"strings"
 	"sync"
 
@@ -198,16 +199,25 @@ func tableString[V Vars](t Table[V]) string {
 	t.RLock()
 	defer t.RUnlock()
 
+	var keykeys []string
+	keys := make(map[string]V)
+
 	keyLen := 0
 	for k, _ := range t.M {
-		keyLen = max(len(fmt.Sprint(k)), keyLen)
+		keyStr := fmt.Sprint(k)
+		keykeys = append(keykeys, keyStr)
+		keys[keyStr] = k
+		keyLen = max(len(keyStr), keyLen)
 	}
 
 	s := fmt.Sprintf("+%s+%s+\n", strings.Repeat("-", keyLen+2), strings.Repeat("-", 10))
 
 	rowFormatStr := fmt.Sprintf("| %%%ds | %%%dd |\n", keyLen, 8)
-	for k, v := range t.M {
-		s += fmt.Sprintf(rowFormatStr, k, v)
+
+	sort.Strings(keykeys)
+	for _, k := range keykeys {
+		v := keys[k]
+		s += fmt.Sprintf(rowFormatStr, v, t.M[v])
 	}
 
 	s += fmt.Sprintf("+%s+%s+", strings.Repeat("-", keyLen+2), strings.Repeat("-", 10))

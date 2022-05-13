@@ -1,8 +1,14 @@
 #ifndef TCP_SOCK_H
 #define TCP_SOCK_H
 
+struct inet_connection_sock {
+  __u8 icsk_retransmits;
+} __attribute__((preserve_access_index));
+
 // struct tcp_sock is the kernel representation of a TCP socket.
 struct tcp_sock {
+  struct inet_connection_sock inet_conn;
+
   // RFC 793
   __u32 segs_in;
   __u32 rcv_nxt;

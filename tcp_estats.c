@@ -52,6 +52,8 @@ enum {
 // and bpf_printk. you know, the ones you need rarely. :|
 char __license[] SEC("license") = "GPL";
 
+__u32 snd_max_cache = 0;
+
 // struct sock_common is the minimal network layer representation of sockets.
 struct sock_common {
   union {
@@ -223,6 +225,7 @@ static int tcp_estats_create(const struct key *key, const struct tcp_sock *ts,
 
   submit_app_table_entry(key, TCP_ESTATS_OPERATION_SET,
                          TCP_ESTATS_APP_TABLE_SNDMAX, ts->snd_nxt);
+  snd_max_cache = ts->snd_nxt;
   submit_stack_table_entry(key, TCP_ESTATS_OPERATION_SET,
                            TCP_ESTATS_STACK_TABLE_SNDINITIAL, ts->snd_nxt);
 
@@ -344,20 +347,20 @@ int BPF_PROG(tcp_estats_update_segsend, struct sock *sk, struct __sk_buff *skb,
                             TCP_ESTATS_PERF_TABLE_DATAOCTETSOUT, data_len);
   }
 
-  // TODO: possible retransmission
-  /*
-        const int tcp_flags = TCP_SKB_CB(skb)->tcp_flags;
+  const int tcp_flags = TCP_SKB_CB(skb)->tcp_flags;
   if (tcp_flags & TCPHDR_SYN) {
-          if (((struct inet_connection_sock *)sk)->icsk_retransmits)
-                  submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
-                                  TCP_ESTATS_PERF_TABLE_SEGSRETRANS, 1);
-  } else if (seq < snd_max) {
-          submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
-                          TCP_ESTATS_PERF_TABLE_SEGSRETRANS, pcount);
-          submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
-                          TCP_ESTATS_PERF_TABLE_OCTETSRETRANS, data_len);
+    struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
+    if (!ts) return 0;
+    if (ts->inet_conn.icsk_retransmits) {
+      submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
+                              TCP_ESTATS_PERF_TABLE_SEGSRETRANS, 1);
+    }
+  } else if (seq < snd_max_cache) {
+    submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
+                            TCP_ESTATS_PERF_TABLE_SEGSRETRANS, pcount);
+    submit_perf_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
+                            TCP_ESTATS_PERF_TABLE_OCTETSRETRANS, data_len);
   }
-  */
 
   return 0;
 }
