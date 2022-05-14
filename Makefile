@@ -4,7 +4,7 @@ OUTPUT=tcp_estats_ebpf
 build: gen $(OUTPUT)
 
 .PHONY: gen
-gen: tcp_estats.c tcp_estats.h tcp_estats/tcp_estats.go
+gen: probe/*.c probe/*.h tcp_estats/tcp_estats.go
 	go generate main.go
 	go generate tcp_estats/tcp_estats.go
 
@@ -12,11 +12,13 @@ gen: tcp_estats.c tcp_estats.h tcp_estats/tcp_estats.go
 sum: go.sum
 
 .PHONY: fmt
-fmt: *.go tcp_estats/*.go tcp_estats.c
+fmt: *.go tcp_estats/*.go probe/*.c probe/*.h
 	go fmt *.go
 	go fmt tcp_estats/*.go
-	clang-format -i --style=Google *.c
+	clang-format -i --style=Google probe/*.c
+	clang-format -i --style=Google probe/*.h
 
+# TODO: probe tests?
 .PHONY: test
 test: *.go tcp_estats/*.go
 	go test tcp_estats/*.go
@@ -34,7 +36,7 @@ run: build test
 $(OUTPUT): tcpestats_bpfel.go tcpestats_bpfeb.go main.go endian/endian.go tcp_estats/*.go
 	CGO_ENABLED=1 go build -o $@
 
-tcpestats_bpfe%.go: tcp_estats.c tcp_estats.h
+tcpestats_bpfe%.go: probe/*.c probe/*.h
 	go generate main.go
 #	-@rm tcpestats_bpfe*.o
 
