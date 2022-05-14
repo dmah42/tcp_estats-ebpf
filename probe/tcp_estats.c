@@ -1,6 +1,6 @@
 // +build ignore
 
-#include "tcp_estats.h"
+#include "probe/tcp_estats.h"
 
 #include <bpf/bpf_endian.h>
 #include <bpf/bpf_helpers.h>
@@ -15,8 +15,8 @@
 #include <stdbool.h>
 #include <unistd.h>
 
-#include "tcp.h"
-#include "tcp_sock.h"
+#include "probe/tcp.h"
+#include "probe/tcp_sock.h"
 
 #define AF_INET 2
 #define AF_INET6 10

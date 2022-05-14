@@ -1,5 +1,5 @@
-#ifndef TCP_ESTATS_TCP_H
-#define TCP_ESTATS_TCP_H
+#ifndef TCP_ESTATS_PROBE_TCP_H
+#define TCP_ESTATS_PROBE_TCP_H
 
 // TODO: figure out how to get these from /include/net/tcp.h
 #define TCP_ECN_OK 1
@@ -18,4 +18,4 @@
 
 #define TCPHDR_SYN_ECN (TCPHDR_SYN | TCPHDR_ECE | TCPHDR_CWR)
 
-#endif  // TCP_ESTATS_TCP_H
+#endif  // TCP_ESTATS_PROBE_TCP_H

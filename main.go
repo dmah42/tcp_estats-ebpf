@@ -1,7 +1,7 @@
 //go:build linux
 // +build linux
 
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go --strip llvm-strip-12 --cflags "-Wall -Werror -O1" tcpestats probe/tcp_estats.c
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go --strip llvm-strip-12 --cflags "-Wall -Werror -O1 -I." tcpestats probe/tcp_estats.c
 
 package main
 
