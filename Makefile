@@ -1,7 +1,7 @@
 OUTPUT=tcp_estats_ebpf
 
 .PHONY: build
-build: gen fmt $(OUTPUT)
+build: gen $(OUTPUT)
 
 .PHONY: gen
 gen: tcp_estats.c tcp_estats.h tcp_estats/tcp_estats.go
@@ -28,7 +28,7 @@ clean:
 	-@rm tcpestats_bpfe*.o
 
 .PHONY: run
-run: test
+run: build test
 	sudo ./$(OUTPUT)
 
 $(OUTPUT): tcpestats_bpfel.go tcpestats_bpfeb.go main.go endian/endian.go tcp_estats/*.go

@@ -1,5 +1,5 @@
-#ifndef TCP_ESTATS_H
-#define TCP_ESTATS_H
+#ifndef TCP_ESTATS_TCP_ESTATS_H
+#define TCP_ESTATS_TCP_ESTATS_H
 
 #include <linux/types.h>
 
@@ -175,4 +175,4 @@ struct entry {
   __u32 val;
 };
 
-#endif  // TCP_ESTATS_H
+#endif  // TCP_ESTATS_TCP_ESTATS_H

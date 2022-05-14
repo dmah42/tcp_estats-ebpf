@@ -12,8 +12,10 @@
 #include <linux/ip.h>
 #include <linux/tcp.h>
 #include <linux/types.h>
+#include <stdbool.h>
 #include <unistd.h>
 
+#include "tcp.h"
 #include "tcp_sock.h"
 
 #define AF_INET 2
@@ -21,23 +23,6 @@
 
 #define ESTATS_INF32 0xffffffff
 #define TCP_INFINITE_SSTHRESH 0x7fffffff
-
-// TODO: figure out how to get these from /include/net/tcp.h
-#define TCP_ECN_OK 1
-#define TCP_ECN_QUEUE_CWR 2
-#define TCP_ECN_DEMAND_CWR 4
-#define TCP_ECN_SEEN 8
-
-#define TCPHDR_FIN 0x01
-#define TCPHDR_SYN 0x02
-#define TCPHDR_RST 0x04
-#define TCPHDR_PSH 0x08
-#define TCPHDR_ACK 0x10
-#define TCPHDR_URG 0x20
-#define TCPHDR_ECE 0x40
-#define TCPHDR_CWR 0x80
-
-#define TCPHDR_SYN_ECN (TCPHDR_SYN | TCPHDR_ECE | TCPHDR_CWR)
 
 // TODO: get this from /include/net/inet_ecn.h
 enum {
@@ -53,6 +38,9 @@ enum {
 char __license[] SEC("license") = "GPL";
 
 __u32 snd_max_cache = 0;
+
+// TODO: remember to update whenever path/SampleRTT is updated
+__u32 sample_rtt_cache = 0;
 
 // struct sock_common is the minimal network layer representation of sockets.
 struct sock_common {
@@ -479,4 +467,78 @@ int BPF_PROG(tcp_rtt_estimator, struct sock *sk, long mrtt_us) {
   }
 
   return 0;
+}
+
+static int tcp_estats_update_congestion(const struct key *key,
+                                        const struct tcp_sock *tp) {
+  if (!key) return 0;
+  if (!tp) return 0;
+
+  submit_perf_table_entry(key, TCP_ESTATS_OPERATION_ADD,
+                          TCP_ESTATS_PERF_TABLE_CONGSIGNALS, 1);
+
+  const __u32 snd_cwnd = tp->snd_cwnd;
+  const __u32 mss = tp->mss_cache;
+  submit_path_table_entry(key, TCP_ESTATS_OPERATION_ADD,
+                          TCP_ESTATS_PATH_TABLE_PRECONGSUMCWND, snd_cwnd * mss);
+  submit_path_table_entry(key, TCP_ESTATS_OPERATION_ADD,
+                          TCP_ESTATS_PATH_TABLE_PRECONGSUMRTT,
+                          sample_rtt_cache);
+
+  return 0;
+}
+
+SEC("fentry/tcp_enter_loss")
+int BPF_PROG(tcp_enter_loss, struct sock *sk, int how) {
+  if (!sk) return 0;
+
+  struct sock_common *sk_comm = &(sk->__sk_common);
+  struct key key = create_key(sk_comm);
+
+  struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
+  if (!ts) return 0;
+
+  struct tcp_sock tp;
+  __builtin_memset(&tp, 0, sizeof(struct tcp_sock));
+  bpf_probe_read(&tp, sizeof(struct tcp_sock), ts);
+
+  return tcp_estats_update_congestion(&key, &tp);
+}
+
+SEC("fexit/tcp_enter_cwr")
+int BPF_PROG(tcp_enter_cwr, struct sock *sk, const int set_ssthresh) {
+  if (!sk) return 0;
+
+  struct sock_common *sk_comm = &(sk->__sk_common);
+  struct key key = create_key(sk_comm);
+
+  struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
+  if (!ts) return 0;
+
+  struct tcp_sock tp;
+  __builtin_memset(&tp, 0, sizeof(struct tcp_sock));
+  bpf_probe_read(&tp, sizeof(struct tcp_sock), ts);
+
+  return tcp_estats_update_congestion(&key, &tp);
+}
+
+// part of tcp_fastretrans_alert. TODO: more here.
+SEC("fexit/tcp_fastretrans_alert")
+int BPF_PROG(tcp_fastretrans_alert, struct sock *sk, const int acked,
+             const int prior_unsacked, bool is_dupack, int flag) {
+  if (!sk) return 0;
+
+  struct sock_common *sk_comm = &(sk->__sk_common);
+  struct key key = create_key(sk_comm);
+
+  struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
+  if (!ts) return 0;
+
+  struct tcp_sock tp;
+  __builtin_memset(&tp, 0, sizeof(struct tcp_sock));
+  bpf_probe_read(&tp, sizeof(struct tcp_sock), ts);
+
+  submit_stack_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
+                           TCP_ESTATS_STACK_TABLE_FASTRETRAN, 1);
+  return tcp_estats_update_congestion(&key, &tp);
 }

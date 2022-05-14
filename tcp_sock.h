@@ -1,5 +1,5 @@
-#ifndef TCP_SOCK_H
-#define TCP_SOCK_H
+#ifndef TCP_ESTATS_TCP_SOCK_H
+#define TCP_ESTATS_TCP_SOCK_H
 
 struct inet_connection_sock {
   __u8 icsk_retransmits;
@@ -35,4 +35,4 @@ struct tcp_sock {
   __u32 total_retrans;
 } __attribute__((preserve_access_index));
 
-#endif // TCP_SOCK_H
+#endif  // TCP_ESTATS_TCP_SOCK_H
