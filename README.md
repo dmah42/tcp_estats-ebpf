@@ -30,45 +30,53 @@ in line with the RFC but allows things to be more generic). Each entry contains:
 * an enum value representing the op (set, add, inc, dec)
 * the operand value (unset for inc and dec)
 
-Care needs to be taken to ensure the variable matches the ringbuffer so the right
-variable goes to the right table.
+Care needs to be taken to ensure the variable matches the ringbuffer so the
+right variable goes to the right table.
 
 ### Go
-A single goroutine that reads from a ringbuffer and populates the tables. All the
-tables are maps guarded with rwmutexes (because we smart) and there's a higher
-level rwmutex protecting the tables themselves, created the first time we encounter
-a key we haven't seen before.
+A single goroutine that reads from a ringbuffer and populates the tables. All
+the tables are maps guarded with rwmutexes (because we smart) and there's a
+higher level rwmutex protecting the tables themselves, created the first time
+we encounter a key we haven't seen before.
 
-Go 1.18+ is necessary as the project requires generics to do some type-agnostic stuff
-and enable the single read loop.
+Go 1.18+ is necessary as the project requires generics to do some type-agnostic
+stuff and enable the single read loop.
+
+### manual testing
+
+on server:
+* `make run`
+* `iperf -s`
+
+on client:
+* `iperf -c <ip> -b 10m -t 30`
+
+this will send 10Mb/s for 30 seconds from the client to the server over TCP
+which should be enough to encourage some tcp stats to show up.  check for a
+connection on port 5001 (dport) specifically.
 
 ## current status
-program runs successfully, but the tcp estats will need validation against a "real"
-version at some point.
+program runs successfully, but the tcp estats will need validation against a
+"real" version at some point.
 
-all values are defined and ready, but only the following hooks have been implemented:
+all values are defined and ready, but only the following variables have been
+implemented:
 
-* `tcp_create_openreq_child` (exit)
-* `tcp_init_sock` (exit)
-* `tcp_v4_do_rcv` (entry and exit)
-
-### in terms of variables
-
-#### tcp_estats_global_table
+### tcp_estats_global_table
 - [x] TCP_ESTATS_GLOBAL_TABLE_LIMSTATE,
 - [x] TCP_ESTATS_GLOBAL_TABLE_LIMSTATE_TS,
 - [x] TCP_ESTATS_GLOBAL_TABLE_START_TS,
 - [x] TCP_ESTATS_GLOBAL_TABLE_CURRENT_TS,
 - [x] TCP_ESTATS_GLOBAL_TABLE_START_TV
 
-#### tcp_estats_connection_table
+### tcp_estats_connection_table
 - [x] TCP_ESTATS_CONNECTION_TABLE_ADDRESS_TYPE,
 - [x] TCP_ESTATS_CONNECTION_TABLE_LOCAL_ADDRESS,
 - [x] TCP_ESTATS_CONNECTION_TABLE_REMOTE_ADDRESS,
 - [x] TCP_ESTATS_CONNECTION_TABLE_LOCAL_PORT,
 - [x] TCP_ESTATS_CONNECTION_TABLE_REMOTE_PORT
 
-#### tcp_estats_perf_table
+### tcp_estats_perf_table
 - [x] TCP_ESTATS_PERF_TABLE_SEGSOUT,
 - [x] TCP_ESTATS_PERF_TABLE_DATASEGSOUT,
 - [x] TCP_ESTATS_PERF_TABLE_DATAOCTETSOUT,  // u64
@@ -107,7 +115,7 @@ all values are defined and ready, but only the following hooks have been impleme
 - [ ] // u32		snd_lim_trans[TCP_ESTATS_SNDLIM_NSTATES];
 - [ ] // u32		snd_lim_time[TCP_ESTATS_SNDLIM_NSTATES];
 
-#### tcp_estats_path_table
+### tcp_estats_path_table
 - [ ] TCP_ESTATS_PATH_TABLE_NONRECOVDAEPISODES,
 - [ ] TCP_ESTATS_PATH_TABLE_SUMOCTETSREORDERED,
 - [ ] TCP_ESTATS_PATH_TABLE_NONRECOVDA,
@@ -130,7 +138,7 @@ all values are defined and ready, but only the following hooks have been impleme
 - [x] TCP_ESTATS_PATH_TABLE_CERCVD,
 - [x] TCP_ESTATS_PATH_TABLE_ECESENT
 
-#### tcp_estats_stack_table
+### tcp_estats_stack_table
 - [x] TCP_ESTATS_STACK_TABLE_ACTIVEOPEN,
 - [x] TCP_ESTATS_STACK_TABLE_MAXSSCWND,
 - [x] TCP_ESTATS_STACK_TABLE_MAXCACWND,
@@ -162,14 +170,14 @@ all values are defined and ready, but only the following hooks have been impleme
 - [ ] TCP_ESTATS_STACK_TABLE_EARLYRETRANS,
 - [ ] TCP_ESTATS_STACK_TABLE_EARLYRETRANSDELAY
 
-#### tcp_estats_app_table
+### tcp_estats_app_table
 - [ ] TCP_ESTATS_APP_TABLE_SNDMAX,
 - [ ] TCP_ESTATS_APP_TABLE_THRUOCTETSACKED,
 - [ ] TCP_ESTATS_APP_TABLE_THRUOCTETSRECEIVED,
 - [ ] TCP_ESTATS_APP_TABLE_MAXAPPWQUEUE,
 - [ ] TCP_ESTATS_APP_TABLE_MAXAPPRQUEUE
 
-#### tcp_estats_extras_table
+### tcp_estats_extras_table
 - [ ] TCP_ESTATS_EXTRAS_TABLE_OTHERREDUCTIONSCV,
 - [ ] TCP_ESTATS_EXTRAS_TABLE_OTHERREDUCTIONSCM,
 - [ ] TCP_ESTATS_EXTRAS_TABLE_PRIORITY
