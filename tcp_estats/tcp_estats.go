@@ -10,6 +10,7 @@
 package tcp_estats
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -20,67 +21,71 @@ import (
 	"tcp_estats-ebpf/endian"
 )
 
+var (
+	verbose = flag.Bool("verbose", false, "extra logging if set to true")
+)
+
 type Operation uint32
 
 const (
 	OPERATION_SET Operation = iota
-	OPERATION_ADD Operation = iota
-	OPERATION_SUB Operation = iota
-	OPERATION_MAX Operation = iota
-	OPERATION_MIN Operation = iota
+	OPERATION_ADD
+	OPERATION_SUB
+	OPERATION_MAX
+	OPERATION_MIN
 )
 
 type GlobalVar uint32
 
 const (
-	GLOBAL_TABLE_LIMSTATE    GlobalVar = iota
-	GLOBAL_TABLE_LIMSTATE_TS GlobalVar = iota
-	GLOBAL_TABLE_START_TS    GlobalVar = iota
-	GLOBAL_TABLE_CURRENT_TS  GlobalVar = iota
-	GLOBAL_TABLE_START_TV    GlobalVar = iota
+	GLOBAL_TABLE_LIMSTATE GlobalVar = iota
+	GLOBAL_TABLE_LIMSTATE_TS
+	GLOBAL_TABLE_START_TS
+	GLOBAL_TABLE_CURRENT_TS
+	GLOBAL_TABLE_START_TV
 )
 
 type ConnectionVar uint32
 
 const (
-	CONNECTION_TABLE_ADDRESS_TYPE   ConnectionVar = iota
-	CONNECTION_TABLE_LOCAL_ADDRESS  ConnectionVar = iota
-	CONNECTION_TABLE_REMOTE_ADDRESS ConnectionVar = iota
-	CONNECTION_TABLE_LOCAL_PORT     ConnectionVar = iota
-	CONNECTION_TABLE_REMOTE_PORT    ConnectionVar = iota
+	CONNECTION_TABLE_ADDRESS_TYPE ConnectionVar = iota
+	CONNECTION_TABLE_LOCAL_ADDRESS
+	CONNECTION_TABLE_REMOTE_ADDRESS
+	CONNECTION_TABLE_LOCAL_PORT
+	CONNECTION_TABLE_REMOTE_PORT
 )
 
 type PerfVar uint32
 
 const (
-	PERF_TABLE_SEGSOUT       PerfVar = iota
-	PERF_TABLE_DATASEGSOUT   PerfVar = iota
-	PERF_TABLE_DATAOCTETSOUT PerfVar = iota //u64
-	PERF_TABLE_SEGSRETRANS   PerfVar = iota
-	PERF_TABLE_OCTETSRETRANS PerfVar = iota
-	PERF_TABLE_SEGSIN        PerfVar = iota
-	PERF_TABLE_DATASEGSIN    PerfVar = iota
-	PERF_TABLE_DATAOCTETSIN  PerfVar = iota //u64
-	PERF_TABLE_NORMALRTTM    PerfVar = iota
-	PERF_TABLE_HIGHRTTM      PerfVar = iota
+	PERF_TABLE_SEGSOUT PerfVar = iota
+	PERF_TABLE_DATASEGSOUT
+	PERF_TABLE_DATAOCTETSOUT // u64
+	PERF_TABLE_SEGSRETRANS
+	PERF_TABLE_OCTETSRETRANS
+	PERF_TABLE_SEGSIN
+	PERF_TABLE_DATASEGSIN
+	PERF_TABLE_DATAOCTETSIN // u64
+	PERF_TABLE_NORMALRTTM
+	PERF_TABLE_HIGHRTTM
 	/*		ElapsedSecs */
 	/*		ElapsedMicroSecs */
 	/*		StartTimeStamp */
 	/*		CurMSS */
 	/*		PipeSize */
-	PERF_TABLE_MAXPIPESIZE PerfVar = iota
+	PERF_TABLE_MAXPIPESIZE
 	/*		SmoothedRTT */
 	/*		CurRTO */
-	PERF_TABLE_CONGSIGNALS PerfVar = iota
+	PERF_TABLE_CONGSIGNALS
 	/*		CurCwnd */
 	/*		CurSsthresh */
-	PERF_TABLE_TIMEOUTS PerfVar = iota
+	PERF_TABLE_TIMEOUTS
 	/*		CurRwinSent */
-	PERF_TABLE_MAXRWINSENT  PerfVar = iota
-	PERF_TABLE_ZERORWINSENT PerfVar = iota
+	PERF_TABLE_MAXRWINSENT
+	PERF_TABLE_ZERORWINSENT
 	/*		CurRwinRcvd */
-	PERF_TABLE_MAXRWINRCVD  PerfVar = iota
-	PERF_TABLE_ZERORWINRCVD PerfVar = iota
+	PERF_TABLE_MAXRWINRCVD
+	PERF_TABLE_ZERORWINRCVD
 	/*		SndLimTransRwin */
 	/*		SndLimTransCwnd */
 	/*		SndLimTransSnd */
@@ -97,91 +102,91 @@ type PathVar uint32
 
 const (
 	PATH_TABLE_NONRECOVDAEPISODES PathVar = iota
-	PATH_TABLE_SUMOCTETSREORDERED PathVar = iota
-	PATH_TABLE_NONRECOVDA         PathVar = iota
-	PATH_TABLE_SAMPLERTT          PathVar = iota
-	PATH_TABLE_MAXRTT             PathVar = iota
-	PATH_TABLE_MINRTT             PathVar = iota
-	PATH_TABLE_SUMRTT             PathVar = iota
-	PATH_TABLE_COUNTRTT           PathVar = iota
-	PATH_TABLE_MAXRTO             PathVar = iota
-	PATH_TABLE_MINRTO             PathVar = iota
-	PATH_TABLE_PTTL               PathVar = iota
-	PATH_TABLE_PTOSIN             PathVar = iota
-	PATH_TABLE_PRECONGSUMCWND     PathVar = iota
-	PATH_TABLE_PRECONGSUMRTT      PathVar = iota
-	PATH_TABLE_POSTCONGSUMRTT     PathVar = iota
-	PATH_TABLE_POSTCONGCOUNTRTT   PathVar = iota
-	PATH_TABLE_ECNSIGNALS         PathVar = iota
-	PATH_TABLE_DUPACKEPISODES     PathVar = iota
-	PATH_TABLE_DUPACKSOUT         PathVar = iota
-	PATH_TABLE_CERCVD             PathVar = iota
-	PATH_TABLE_ECESENT            PathVar = iota
+	PATH_TABLE_SUMOCTETSREORDERED
+	PATH_TABLE_NONRECOVDA
+	PATH_TABLE_SAMPLERTT
+	PATH_TABLE_MAXRTT
+	PATH_TABLE_MINRTT
+	PATH_TABLE_SUMRTT
+	PATH_TABLE_COUNTRTT
+	PATH_TABLE_MAXRTO
+	PATH_TABLE_MINRTO
+	PATH_TABLE_PTTL
+	PATH_TABLE_PTOSIN
+	PATH_TABLE_PRECONGSUMCWND
+	PATH_TABLE_PRECONGSUMRTT
+	PATH_TABLE_POSTCONGSUMRTT
+	PATH_TABLE_POSTCONGCOUNTRTT
+	PATH_TABLE_ECNSIGNALS
+	PATH_TABLE_DUPACKEPISODES
+	PATH_TABLE_DUPACKSOUT
+	PATH_TABLE_CERCVD
+	PATH_TABLE_ECESENT
 )
 
 type StackVar uint32
 
 const (
-	STACK_TABLE_ACTIVEOPEN          StackVar = iota
-	STACK_TABLE_MAXSSCWND           StackVar = iota
-	STACK_TABLE_MAXCACWND           StackVar = iota
-	STACK_TABLE_MAXSSTHRESH         StackVar = iota
-	STACK_TABLE_MINSSTHRESH         StackVar = iota
-	STACK_TABLE_DUPACKSIN           StackVar = iota
-	STACK_TABLE_SPURIOUSFRDETECTED  StackVar = iota
-	STACK_TABLE_SPURIOUSRTODETECTED StackVar = iota
-	STACK_TABLE_SOFTERRORS          StackVar = iota
-	STACK_TABLE_SOFTERRORREASON     StackVar = iota
-	STACK_TABLE_SLOWSTART           StackVar = iota
-	STACK_TABLE_CONGAVOID           StackVar = iota
-	STACK_TABLE_OTHERREDUCTIONS     StackVar = iota
-	STACK_TABLE_CONGOVERCOUNT       StackVar = iota
-	STACK_TABLE_FASTRETRAN          StackVar = iota
-	STACK_TABLE_SUBSEQUENTTIMEOUTS  StackVar = iota
-	STACK_TABLE_ABRUPTTIMEOUTS      StackVar = iota
-	STACK_TABLE_SACKSRCVD           StackVar = iota
-	STACK_TABLE_SACKBLOCKSRCVD      StackVar = iota
-	STACK_TABLE_SENDSTALL           StackVar = iota
-	STACK_TABLE_DSACKDUPS           StackVar = iota
-	STACK_TABLE_MAXMSS              StackVar = iota
-	STACK_TABLE_MINMSS              StackVar = iota
-	STACK_TABLE_SNDINITIAL          StackVar = iota
-	STACK_TABLE_RECINITIAL          StackVar = iota
-	STACK_TABLE_CURRETXQUEUE        StackVar = iota
-	STACK_TABLE_MAXRETXQUEUE        StackVar = iota
-	STACK_TABLE_MAXREASMQUEUE       StackVar = iota
-	STACK_TABLE_EARLYRETRANS        StackVar = iota
-	STACK_TABLE_EARLYRETRANSDELAY   StackVar = iota
+	STACK_TABLE_ACTIVEOPEN StackVar = iota
+	STACK_TABLE_MAXSSCWND
+	STACK_TABLE_MAXCACWND
+	STACK_TABLE_MAXSSTHRESH
+	STACK_TABLE_MINSSTHRESH
+	STACK_TABLE_DUPACKSIN
+	STACK_TABLE_SPURIOUSFRDETECTED
+	STACK_TABLE_SPURIOUSRTODETECTED
+	STACK_TABLE_SOFTERRORS
+	STACK_TABLE_SOFTERRORREASON
+	STACK_TABLE_SLOWSTART
+	STACK_TABLE_CONGAVOID
+	STACK_TABLE_OTHERREDUCTIONS
+	STACK_TABLE_CONGOVERCOUNT
+	STACK_TABLE_FASTRETRAN
+	STACK_TABLE_SUBSEQUENTTIMEOUTS
+	STACK_TABLE_ABRUPTTIMEOUTS
+	STACK_TABLE_SACKSRCVD
+	STACK_TABLE_SACKBLOCKSRCVD
+	STACK_TABLE_SENDSTALL
+	STACK_TABLE_DSACKDUPS
+	STACK_TABLE_MAXMSS
+	STACK_TABLE_MINMSS
+	STACK_TABLE_SNDINITIAL
+	STACK_TABLE_RECINITIAL
+	STACK_TABLE_CURRETXQUEUE
+	STACK_TABLE_MAXRETXQUEUE
+	STACK_TABLE_MAXREASMQUEUE
+	STACK_TABLE_EARLYRETRANS
+	STACK_TABLE_EARLYRETRANSDELAY
 )
 
 type AppVar uint32
 
 const (
-	APP_TABLE_SNDMAX             AppVar = iota
-	APP_TABLE_THRUOCTETSACKED    AppVar = iota // u64
-	APP_TABLE_THRUOCTETSRECEIVED AppVar = iota // u64
-	APP_TABLE_MAXAPPWQUEUE       AppVar = iota
-	APP_TABLE_MAXAPPRQUEUE       AppVar = iota
+	APP_TABLE_SNDMAX AppVar = iota
+	APP_TABLE_THRUOCTETSACKED
+	APP_TABLE_THRUOCTETSRECEIVED
+	APP_TABLE_MAXAPPWQUEUE
+	APP_TABLE_MAXAPPRQUEUE
 )
 
 type ExtrasVar uint32
 
 const (
 	EXTRAS_TABLE_OTHERREDUCTIONSCV ExtrasVar = iota
-	EXTRAS_TABLE_OTHERREDUCTIONSCM ExtrasVar = iota
-	EXTRAS_TABLE_PRIORITY          ExtrasVar = iota
+	EXTRAS_TABLE_OTHERREDUCTIONSCM
+	EXTRAS_TABLE_PRIORITY
 )
 
 type SndLimState int
 
 const (
-	SNDLIM_NONE     SndLimState = -1
-	SNDLIM_SENDER               = iota
-	SNDLIM_CWND                 = iota
-	SNDLIM_RWIN                 = iota
-	SNDLIM_STARTUP              = iota
-	SNDLIM_TSODEFER             = iota
-	SNDLIM_PACE                 = iota
+	SNDLIM_NONE SndLimState = iota - 1
+	SNDLIM_SENDER
+	SNDLIM_CWND
+	SNDLIM_RWIN
+	SNDLIM_STARTUP
+	SNDLIM_TSODEFER
+	SNDLIM_PACE
 )
 
 type Vars interface {
@@ -308,50 +313,59 @@ func min[T int | uint32](x, y T) T {
 
 // You may wonder why this isn't declared as a method on Estats.
 // Generics don't work on methods, only functions.
-func DoOp[V Vars](e *Estats, entry Entry) {
-	v := V(entry.Var)
+func DoOp[V Vars](e *Estats, rec Record) {
+	v := V(rec.Var)
 
 	t := e.GetTableForVar(v).(*Table[V])
 	t.RLock()
 	defer t.RUnlock()
 
-	switch entry.Op {
+	if *verbose {
+		log.Printf("DoOp: %s\n", rec)
+	}
+	switch rec.Op {
 	case OPERATION_SET:
-		//log.Printf(" . setting %v to %d", v, entry.Val)
-		t.M[v] = entry.Val
+		if *verbose {
+			log.Printf(" . setting %s to %d\n", v, rec.Val)
+		}
+		t.M[v] = rec.Val
 	case OPERATION_ADD:
-		//log.Printf(" . adding %v to %d", v, entry.Val)
-		t.M[v] += entry.Val
+		if *verbose {
+			log.Printf(" . adding %s to %d\n", v, rec.Val)
+		}
+		t.M[v] += rec.Val
 	case OPERATION_SUB:
-		//log.Printf(" . subtracting %d from %v", entry.Val, v)
-		t.M[v] -= entry.Val
+		if *verbose {
+			log.Printf(" . subtracting %d from %s\n", rec.Val, v)
+		}
+		t.M[v] -= rec.Val
 	case OPERATION_MAX:
-		//log.Printf(" . setting max to %v", v)
-		t.M[v] = max(t.M[v], entry.Val)
+		if *verbose {
+			log.Printf(" . setting %s to max of %d and %d\n", v, t.M[v], v)
+		}
+		t.M[v] = max(t.M[v], rec.Val)
 	case OPERATION_MIN:
-		//log.Printf(" . setting min to %v", v)
-		t.M[v] = min(t.M[v], entry.Val)
+		if *verbose {
+			log.Printf(" . setting %s to min of %d and %d\n", v, t.M[v], v)
+		}
+		t.M[v] = min(t.M[v], rec.Val)
 	}
 }
 
-// Mirror of `entry` in tcp_estats.c
-type Key struct {
+// Mirror of `retord` in tcp_estats.h
+type Record struct {
 	PidTgid uint64
 	Saddr   uint32
 	Daddr   uint32
 	Sport   uint16
 	Dport   uint16
+	Op      Operation
+	Var     uint32
+	Val     uint32
 }
 
-type Entry struct {
-	Key Key
-	Op  Operation
-	Var uint32
-	Val uint32
-}
-
-func (k Key) String() string {
-	return fmt.Sprintf("[P: %d, S: %s:%d, D: %s:%d]", k.PidTgid, intToIP(k.Saddr), k.Sport, intToIP(k.Daddr), k.Dport)
+func (rec Record) String() string {
+	return fmt.Sprintf("[P: %d, S: %s:%d, D: %s:%d]: %s on %d with %d", rec.PidTgid, intToIP(rec.Saddr), rec.Sport, intToIP(rec.Daddr), rec.Dport, rec.Op, rec.Var, rec.Val)
 }
 
 func intToIP(num uint32) net.IP {

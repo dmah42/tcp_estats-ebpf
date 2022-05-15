@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -32,6 +33,8 @@ func init() {
 }
 
 func main() {
+	flag.Parse()
+
 	stopper := make(chan os.Signal, 1)
 	signal.Notify(stopper, os.Interrupt, syscall.SIGTERM)
 
@@ -139,37 +142,44 @@ func main() {
 }
 
 func readLoop[V tcp_estats.Vars](rd *ringbuf.Reader) {
-	var entry tcp_estats.Entry
+	var record tcp_estats.Record
 	for {
-		record, err := rd.Read()
+		item, err := rd.Read()
 		if err != nil {
 			if errors.Is(err, ringbuf.ErrClosed) {
-				log.Println("received signal, exiting loop..")
+				// log.Println("received signal, exiting loop..")
 				return
 			}
 			continue
 		}
 
 		// parse to structure
-		if err := binary.Read(bytes.NewBuffer(record.RawSample), endian.Native, &entry); err != nil {
+		if err := binary.Read(bytes.NewBuffer(item.RawSample), endian.Native, &record); err != nil {
 			//log.Printf("parsing entry: %v", err)
 			continue
 		}
-
-		//log.Printf("read %+v", entry)
 
 		// There might be a way to get away with a RLock here followed
 		// by a Lock in the unlikely case we need to insert, but just taking
 		// the more expensive lock is easier.
 		estats_db.Lock()
 
-		e, ok := estats_db.m[entry.Key]
+		k := key{
+			PidTgid: record.PidTgid,
+			Saddr:   record.Saddr,
+			Daddr:   record.Daddr,
+			Sport:   record.Sport,
+			Dport:   record.Dport,
+		}
+
+		e, ok := estats_db.m[k]
 		if !ok {
 			e = tcp_estats.New()
-			estats_db.m[entry.Key] = e
+			estats_db.m[k] = e
 		}
 		estats_db.Unlock()
 
-		tcp_estats.DoOp[V](e, entry)
+		// TODO: consider only passing through the op/vap/val
+		tcp_estats.DoOp[V](e, record)
 	}
 }

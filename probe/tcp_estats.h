@@ -23,7 +23,7 @@ enum tcp_estats_addrtype {
 };
 
 enum tcp_estats_operation {
-  TCP_ESTATS_OPERATION_SET,
+  TCP_ESTATS_OPERATION_SET = 0,
   TCP_ESTATS_OPERATION_ADD,
   TCP_ESTATS_OPERATION_SUB,
   TCP_ESTATS_OPERATION_MAX,
@@ -157,20 +157,18 @@ enum tcp_estats_extras_table {
   TCP_ESTATS_EXTRAS_TABLE_PRIORITY
 };
 
-// An entry describes the operation to make on one of the estats tables.
-struct key {
-  // TODO: ipv6
+// A record describes the operation to make on one of the estats tables,
+// and a key used as a proxy for a "unique socket".
+struct record {
+  // key
   __u64 pid_tgid;
   __u32 saddr;
   __u32 daddr;
   __u16 sport;
   __u16 dport;
-};
 
-struct entry {
-  struct key key;
+  // operation
   enum tcp_estats_operation op;
-  // oneof table var enum entries
   __u32 var;
   __u32 val;
 };

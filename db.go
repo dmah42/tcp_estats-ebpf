@@ -2,20 +2,41 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"sync"
 
+	"tcp_estats-ebpf/endian"
 	"tcp_estats-ebpf/tcp_estats"
 )
 
+// Extracted from tcp_estats.Record
+type key struct {
+	PidTgid uint64
+	Saddr   uint32
+	Daddr   uint32
+	Sport   uint16
+	Dport   uint16
+}
+
+func (k key) String() string {
+	return fmt.Sprintf("[P: %d, S: %s:%d, D: %s:%d]", k.PidTgid, intToIP(k.Saddr), k.Sport, intToIP(k.Daddr), k.Dport)
+}
+
+func intToIP(num uint32) net.IP {
+	ip := make(net.IP, 4)
+	endian.Native.PutUint32(ip, num)
+	return ip
+}
+
 type db struct {
 	sync.RWMutex
-	m map[tcp_estats.Key]*tcp_estats.Estats
+	m map[key]*tcp_estats.Estats
 }
 
 func NewDB() *db {
 	db := new(db)
 	db.Lock()
-	db.m = make(map[tcp_estats.Key]*tcp_estats.Estats)
+	db.m = make(map[key]*tcp_estats.Estats)
 	db.Unlock()
 	return db
 }

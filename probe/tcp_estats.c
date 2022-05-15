@@ -128,17 +128,30 @@ struct {
   __uint(max_entries, 1 << 24);
 } extras_table SEC(".maps");
 
-int _submit_entry(void *table, const struct key key,
-                  enum tcp_estats_operation op, __u32 var, __u32 val) {
-  struct entry *entry = bpf_ringbuf_reserve(table, sizeof(struct entry), 0);
-  if (!entry) return 0;
+struct key {
+  // TODO: ipv6
+  __u64 pid_tgid;
+  __u32 saddr;
+  __u32 daddr;
+  __u16 sport;
+  __u16 dport;
+};
 
-  entry->key = key;
-  entry->op = op;
-  entry->var = var;
-  entry->val = val;
+int _submit_record(void *table, const struct key key,
+                   enum tcp_estats_operation op, __u32 var, __u32 val) {
+  struct record *rec = bpf_ringbuf_reserve(table, sizeof(struct record), 0);
+  if (!rec) return 0;
 
-  bpf_ringbuf_submit(entry, 0);
+  rec->pid_tgid = key.pid_tgid;
+  rec->saddr = key.saddr;
+  rec->sport = key.sport;
+  rec->daddr = key.daddr;
+  rec->dport = key.dport;
+  rec->op = op;
+  rec->var = var;
+  rec->val = val;
+
+  bpf_ringbuf_submit(rec, 0);
 
   return 0;
 }
@@ -151,7 +164,7 @@ int _submit_entry(void *table, const struct key key,
   int FUNC_NAME(TABLE)(const struct key *key, enum tcp_estats_operation op, \
                        enum VAR_TYPE(TABLE) var, __u32 val) {               \
     void *table = &TABLE_NAME(TABLE);                                       \
-    return _submit_entry(table, *key, op, (__u32)var, val);                 \
+    return _submit_record(table, *key, op, (__u32)var, val);                \
   }
 
 SUBMIT_FUNC(global)
@@ -177,6 +190,8 @@ static struct key create_key(const struct sock_common *sk_comm) {
 
 static int tcp_estats_create(const struct key *key, const struct tcp_sock *ts,
                              int addr_family, int active) {
+  bpf_printk("++ tcp_estats_create: %d %d", addr_family, active);
+
   if (!ts) return 0;
 
   enum tcp_estats_addrtype addr_type;
@@ -187,6 +202,7 @@ static int tcp_estats_create(const struct key *key, const struct tcp_sock *ts,
     addr_type = TCP_ESTATS_ADDRTYPE_IPV6;
   } else {
     // Invalid address family
+    bpf_printk("** tcp_estats_create: invalid address family %d", addr_family);
     return 0;
   }
 
@@ -232,8 +248,8 @@ static int tcp_estats_create(const struct key *key, const struct tcp_sock *ts,
 SEC("fexit/tcp_create_openreq_child")
 int BPF_PROG(tcp_estats_create_inactive, struct sock *sk) {
   if (!sk) return 0;
-  struct sock_common *sk_comm = &(sk->__sk_common);
 
+  struct sock_common *sk_comm = &(sk->__sk_common);
   struct key key = create_key(sk_comm);
 
   // TODO: support tcp6_sock if family is AF_INET6.
@@ -244,7 +260,6 @@ int BPF_PROG(tcp_estats_create_inactive, struct sock *sk) {
 
 SEC("fexit/tcp_init_sock")
 int BPF_PROG(tcp_estats_create_active, struct sock *sk) {
-  return 0;
   if (!sk) return 0;
   struct sock_common *sk_comm = &(sk->__sk_common);
 
@@ -395,19 +410,24 @@ int BPF_PROG(tcp_estats_update_finish_segrecv, struct sock *sk,
   return 0;
 }
 
-static void TCP_ECN_check_ce(struct key key, const struct tcp_sock *ts,
-                             const struct __sk_buff *skb) {
-  if (!(ts->ecn_flags & TCP_ECN_OK)) return;
+static int TCP_ECN_check_ce(const struct key *key, const struct tcp_sock *ts,
+                            const struct __sk_buff *skb) {
+  if (!key) return 0;
+  if (!ts) return 0;
+  if (!skb) return 0;
+  if (!(ts->ecn_flags & TCP_ECN_OK)) return 0;
 
   switch (TCP_SKB_CB(skb)->ip_dsfield & INET_ECN_MASK) {
     case INET_ECN_CE:
-      submit_path_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
+      submit_path_table_entry(key, TCP_ESTATS_OPERATION_ADD,
                               TCP_ESTATS_PATH_TABLE_CERCVD, 1);
       if (ts->ecn_flags & TCP_ECN_DEMAND_CWR) {
-        submit_path_table_entry(&key, TCP_ESTATS_OPERATION_ADD,
+        submit_path_table_entry(key, TCP_ESTATS_OPERATION_ADD,
                                 TCP_ESTATS_PATH_TABLE_ECESENT, 1);
       }
   }
+
+  return 0;
 }
 
 SEC("fexit/tcp_event_data_recv")
@@ -422,9 +442,11 @@ int BPF_PROG(tcp_event_data_recv, struct sock *sk, struct __sk_buff *skb) {
   struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
   if (!ts) return 0;
 
-  TCP_ECN_check_ce(key, ts, skb);
+  struct tcp_sock tp;
+  __builtin_memset(&tp, 0, sizeof(struct tcp_sock));
+  bpf_probe_read(&tp, sizeof(struct tcp_sock), ts);
 
-  return 0;
+  return TCP_ECN_check_ce(&key, &tp, skb);
 }
 
 SEC("fentry/tcp_data_queue_ofo")
@@ -439,9 +461,11 @@ int BPF_PROG(tcp_data_queue_ofo, struct sock *sk, struct __sk_buff *skb) {
   struct tcp_sock *ts = bpf_skc_to_tcp_sock(sk);
   if (!ts) return 0;
 
-  TCP_ECN_check_ce(key, ts, skb);
+  struct tcp_sock tp;
+  __builtin_memset(&tp, 0, sizeof(struct tcp_sock));
+  bpf_probe_read(&tp, sizeof(struct tcp_sock), ts);
 
-  return 0;
+  return TCP_ECN_check_ce(&key, &tp, skb);
 }
 
 SEC("fentry/tcp_rtt_estimator")
