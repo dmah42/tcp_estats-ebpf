@@ -179,7 +179,6 @@ func readLoop[V tcp_estats.Vars](rd *ringbuf.Reader) {
 		}
 		estats_db.Unlock()
 
-		// TODO: consider only passing through the op/vap/val
-		tcp_estats.DoOp[V](e, record)
+		tcp_estats.DoOp[V](e, record.Op, V(record.Var), record.Val)
 	}
 }

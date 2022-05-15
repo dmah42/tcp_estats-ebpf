@@ -313,42 +313,40 @@ func min[T int | uint32](x, y T) T {
 
 // You may wonder why this isn't declared as a method on Estats.
 // Generics don't work on methods, only functions.
-func DoOp[V Vars](e *Estats, rec Record) {
-	v := V(rec.Var)
-
+func DoOp[V Vars](e *Estats, op Operation, v V, val uint32) {
 	t := e.GetTableForVar(v).(*Table[V])
 	t.RLock()
 	defer t.RUnlock()
 
 	if *verbose {
-		log.Printf("DoOp: %s\n", rec)
+		log.Printf("DoOp: %s %s %d\n", op, v, val)
 	}
-	switch rec.Op {
+	switch op {
 	case OPERATION_SET:
 		if *verbose {
-			log.Printf(" . setting %s to %d\n", v, rec.Val)
+			log.Printf(" . setting %s to %d\n", v, val)
 		}
-		t.M[v] = rec.Val
+		t.M[v] = val
 	case OPERATION_ADD:
 		if *verbose {
-			log.Printf(" . adding %s to %d\n", v, rec.Val)
+			log.Printf(" . adding %s to %d\n", v, val)
 		}
-		t.M[v] += rec.Val
+		t.M[v] += val
 	case OPERATION_SUB:
 		if *verbose {
-			log.Printf(" . subtracting %d from %s\n", rec.Val, v)
+			log.Printf(" . subtracting %d from %s\n", val, v)
 		}
-		t.M[v] -= rec.Val
+		t.M[v] -= val
 	case OPERATION_MAX:
 		if *verbose {
-			log.Printf(" . setting %s to max of %d and %d\n", v, t.M[v], v)
+			log.Printf(" . setting %s to max of %d and %d\n", v, t.M[v], val)
 		}
-		t.M[v] = max(t.M[v], rec.Val)
+		t.M[v] = max(t.M[v], val)
 	case OPERATION_MIN:
 		if *verbose {
-			log.Printf(" . setting %s to min of %d and %d\n", v, t.M[v], v)
+			log.Printf(" . setting %s to min of %d and %d\n", v, t.M[v], val)
 		}
-		t.M[v] = min(t.M[v], rec.Val)
+		t.M[v] = min(t.M[v], val)
 	}
 }
 
