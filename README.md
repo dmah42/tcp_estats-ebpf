@@ -3,7 +3,7 @@ in the upstream Linux kernel failed due to the large overhead.  Even though it
 could be controlled through sysctl and was completely removable, it was felt
 to be too much code.
 
-Also, TCPINFO already existed as a centralized method for tracing TCP internals
+Also, TCP_INFO already existed as a centralized method for tracing TCP internals
 which was extensible and integrated with existing tools like `ss`.
 
 Now we have [eBPF](https://ebpf.io) I thought it would be fun to try to
