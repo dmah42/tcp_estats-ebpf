@@ -184,7 +184,6 @@ implemented:
 
 ## next steps
 
-* move stuff to `internal`
 * more implementation of stats collection, requiring more program hooks.
 * tests? :D
 * validation of results
