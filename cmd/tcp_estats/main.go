@@ -8,6 +8,7 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -135,7 +136,12 @@ func main() {
 	<-stopper
 
 	log.Println(".. stopped read loops")
-	fmt.Printf("%s", estats_db)
+
+	j, err := json.Marshal(estats_db)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+	fmt.Printf("%s", j)
 }
 
 func readLoop[V Vars](rd *ringbuf.Reader) {

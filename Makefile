@@ -15,7 +15,7 @@ fmt: *.go cmd/tcp_estats/*.go probe/*.c probe/*.h
 # TODO: probe tests?
 .PHONY: test
 test: cmd/tcp_estats/*.go 
-	go test cmd/tcp_estats/*.go
+	go test cmd/tcp_estats
 
 .PHONY: clean
 clean:

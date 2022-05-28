@@ -10,11 +10,10 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
-	"sort"
-	"strings"
 	"sync"
 )
 
@@ -191,49 +190,13 @@ type Vars interface {
 		StackVar | AppVar | ExtrasVar
 }
 
-type Table[V Vars] struct {
+type Table struct {
 	sync.RWMutex
-	M map[V]uint32
-}
-
-func tableString[V Vars](t Table[V]) string {
-	t.RLock()
-	defer t.RUnlock()
-
-	var keykeys []string
-	keys := make(map[string]V)
-
-	keyLen := 0
-	for k, _ := range t.M {
-		keyStr := fmt.Sprint(k)
-		keykeys = append(keykeys, keyStr)
-		keys[keyStr] = k
-		keyLen = max(len(keyStr), keyLen)
-	}
-
-	s := fmt.Sprintf("+%s+%s+\n", strings.Repeat("-", keyLen+2), strings.Repeat("-", 10))
-
-	rowFormatStr := fmt.Sprintf("| %%%ds | %%%dd |\n", keyLen, 8)
-
-	sort.Strings(keykeys)
-	for _, k := range keykeys {
-		v := keys[k]
-		s += fmt.Sprintf(rowFormatStr, v, t.M[v])
-	}
-
-	s += fmt.Sprintf("+%s+%s+", strings.Repeat("-", keyLen+2), strings.Repeat("-", 10))
-
-	return s
+	M map[string]uint32
 }
 
 type tables struct {
-	Global     Table[GlobalVar]
-	Connection Table[ConnectionVar]
-	Perf       Table[PerfVar]
-	Path       Table[PathVar]
-	Stack      Table[StackVar]
-	App        Table[AppVar]
-	Extras     Table[ExtrasVar]
+	Global, Connection, Perf, Path, Stack, App, Extras Table
 }
 
 type Estats struct {
@@ -242,33 +205,18 @@ type Estats struct {
 
 func NewEstats() *Estats {
 	e := new(Estats)
-	e.Tables.Global = Table[GlobalVar]{M: make(map[GlobalVar]uint32)}
-	e.Tables.Connection = Table[ConnectionVar]{M: make(map[ConnectionVar]uint32)}
-	e.Tables.Perf = Table[PerfVar]{M: make(map[PerfVar]uint32)}
-	e.Tables.Path = Table[PathVar]{M: make(map[PathVar]uint32)}
-	e.Tables.Stack = Table[StackVar]{M: make(map[StackVar]uint32)}
-	e.Tables.App = Table[AppVar]{M: make(map[AppVar]uint32)}
-	e.Tables.Extras = Table[ExtrasVar]{M: make(map[ExtrasVar]uint32)}
+	e.Tables.Global = Table{M: make(map[string]uint32)}
+	e.Tables.Connection = Table{M: make(map[string]uint32)}
+	e.Tables.Perf = Table{M: make(map[string]uint32)}
+	e.Tables.Path = Table{M: make(map[string]uint32)}
+	e.Tables.Stack = Table{M: make(map[string]uint32)}
+	e.Tables.App = Table{M: make(map[string]uint32)}
+	e.Tables.Extras = Table{M: make(map[string]uint32)}
 	return e
 }
 
-func (e Estats) String() string {
-	s := "..- global -..\n"
-	s += tableString(e.Tables.Global) + "\n"
-	s += "..- connection -..\n"
-	s += tableString(e.Tables.Connection) + "\n"
-	s += "..- perf -..\n"
-	s += tableString(e.Tables.Perf) + "\n"
-	s += "..- path -..\n"
-	s += tableString(e.Tables.Path) + "\n"
-	s += "..- stack -..\n"
-	s += tableString(e.Tables.Stack) + "\n"
-	s += "..- app -..\n"
-	s += tableString(e.Tables.App) + "\n"
-	s += "..- extras -..\n"
-	s += tableString(e.Tables.Extras) + "\n"
-
-	return s
+func (e Estats) MarshalJSON() ([]byte, error) {
+	return json.Marshal(e.Tables)
 }
 
 func (e *Estats) GetTableForVar(v any) any {
@@ -310,9 +258,11 @@ func min[T int | uint32](x, y T) T {
 // You may wonder why this isn't declared as a method on Estats.
 // Generics don't work on methods, only functions.
 func DoOp[V Vars](e *Estats, op Operation, v V, val uint32) {
-	t := e.GetTableForVar(v).(*Table[V])
+	t := e.GetTableForVar(v).(*Table)
 	t.RLock()
 	defer t.RUnlock()
+
+	vs := fmt.Sprintf("%s", v)
 
 	if *verbose {
 		log.Printf("DoOp: %s %s %d\n", op, v, val)
@@ -322,27 +272,27 @@ func DoOp[V Vars](e *Estats, op Operation, v V, val uint32) {
 		if *verbose {
 			log.Printf(" . setting %s to %d\n", v, val)
 		}
-		t.M[v] = val
+		t.M[vs] = val
 	case OPERATION_ADD:
 		if *verbose {
 			log.Printf(" . adding %s to %d\n", v, val)
 		}
-		t.M[v] += val
+		t.M[vs] += val
 	case OPERATION_SUB:
 		if *verbose {
 			log.Printf(" . subtracting %d from %s\n", val, v)
 		}
-		t.M[v] -= val
+		t.M[vs] -= val
 	case OPERATION_MAX:
 		if *verbose {
-			log.Printf(" . setting %s to max of %d and %d\n", v, t.M[v], val)
+			log.Printf(" . setting %s to max of %d and %d\n", v, t.M[vs], val)
 		}
-		t.M[v] = max(t.M[v], val)
+		t.M[vs] = max(t.M[vs], val)
 	case OPERATION_MIN:
 		if *verbose {
-			log.Printf(" . setting %s to min of %d and %d\n", v, t.M[v], val)
+			log.Printf(" . setting %s to min of %d and %d\n", v, t.M[vs], val)
 		}
-		t.M[v] = min(t.M[v], val)
+		t.M[vs] = min(t.M[vs], val)
 	}
 }
 
@@ -359,5 +309,5 @@ type Record struct {
 }
 
 func (rec Record) String() string {
-	return fmt.Sprintf("[P: %d, S: %s:%d, D: %s:%d]: %s on %d with %d", rec.PidTgid, intToIP(rec.Saddr), rec.Sport, intToIP(rec.Daddr), rec.Dport, rec.Op, rec.Var, rec.Val)
+	return fmt.Sprintf("%s: %s on %d with %d", key{PidTgid: rec.PidTgid, Saddr: rec.Saddr, Sport: rec.Sport, Daddr: rec.Daddr, Dport: rec.Dport}, rec.Op, rec.Var, rec.Val)
 }

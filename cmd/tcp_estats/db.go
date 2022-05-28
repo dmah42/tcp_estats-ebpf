@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 )
@@ -31,33 +32,24 @@ func NewDB() *db {
 	return db
 }
 
-// TODO: json export something like this:
-/*
-	[
-		{
-			"saddrport": "",
-			"daddrport": "",
-			"tables": {
-				"global": {
-					"var": x,
-					"var2": x,
-					...
-				},
-				...
-			}
-		}
-	]
-*/
+type export struct {
+	Saddr  string `json:"saddr"`
+	Daddr  string `json:"daddr"`
+	Tables Estats `json:"tables"`
+}
 
-func (db *db) String() string {
-	db.RLock()
-	defer db.RUnlock()
+func (d *db) MarshalJSON() ([]byte, error) {
+	d.Lock()
+	defer d.Unlock()
 
-	s := "-+= DB =+-\n"
+	var ex []export
 
-	for key, stats := range db.m {
-		s += fmt.Sprintf("%s\n%s\n", key, stats)
+	for k, estats := range d.m {
+		ex = append(ex, export{
+			Saddr:  fmt.Sprintf("%s:%d", intToIP(k.Saddr), k.Sport),
+			Daddr:  fmt.Sprintf("%s:%d", intToIP(k.Daddr), k.Dport),
+			Tables: *estats,
+		})
 	}
-
-	return s
+	return json.Marshal(ex)
 }

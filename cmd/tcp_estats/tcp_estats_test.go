@@ -1,21 +1,25 @@
 package main
 
-import "testing"
+import (
+	"encoding/json"
+	"testing"
+)
 
-func TestTableString(t *testing.T) {
+func TestTableMarshal(t *testing.T) {
 	// setup
-	tab := Table[ExtrasVar]{M: make(map[ExtrasVar]uint32)}
+	tab := Table{M: make(map[string]uint32)}
 	tab.RLock()
-	tab.M[EXTRAS_TABLE_PRIORITY] = 42
-	tab.RUnlock()
+	tab.M[EXTRAS_TABLE_PRIORITY.String()] = 42
+	defer tab.RUnlock()
 
-	got := tableString(tab)
+	got, err := json.Marshal(tab)
+	if err != nil {
+		t.Errorf("unexpected err: %v", err)
+	}
 
-	want := "+-----------------------+----------+\n" +
-		"| EXTRAS_TABLE_PRIORITY |       42 |\n" +
-		"+-----------------------+----------+"
+	want := "{\"M\":{\"EXTRAS_TABLE_PRIORITY\":42}}"
 
-	if got != want {
+	if string(got) != want {
 		t.Errorf("want\n%q\ngot\n%q", want, got)
 	}
 }
