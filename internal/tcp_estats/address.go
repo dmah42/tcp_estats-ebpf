@@ -1,4 +1,4 @@
-package main
+package tcp_estats
 
 import "net"
 

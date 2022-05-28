@@ -1,4 +1,4 @@
-package main
+package tcp_estats
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 )
 
 // Extracted from Record
-type key struct {
+type Key struct {
 	PidTgid uint64
 	Saddr   uint32
 	Daddr   uint32
@@ -15,19 +15,19 @@ type key struct {
 	Dport   uint16
 }
 
-func (k key) String() string {
+func (k Key) String() string {
 	return fmt.Sprintf("[P: %d, S: %s:%d, D: %s:%d]", k.PidTgid, intToIP(k.Saddr), k.Sport, intToIP(k.Daddr), k.Dport)
 }
 
-type db struct {
+type DB struct {
 	sync.RWMutex
-	m map[key]*Estats
+	M map[Key]*Estats
 }
 
-func NewDB() *db {
-	db := new(db)
+func NewDB() *DB {
+	db := new(DB)
 	db.Lock()
-	db.m = make(map[key]*Estats)
+	db.M = make(map[Key]*Estats)
 	db.Unlock()
 	return db
 }
@@ -38,13 +38,13 @@ type export struct {
 	Tables Estats `json:"tables"`
 }
 
-func (d *db) MarshalJSON() ([]byte, error) {
+func (d *DB) MarshalJSON() ([]byte, error) {
 	d.Lock()
 	defer d.Unlock()
 
 	var ex []export
 
-	for k, estats := range d.m {
+	for k, estats := range d.M {
 		ex = append(ex, export{
 			Saddr:  fmt.Sprintf("%s:%d", intToIP(k.Saddr), k.Sport),
 			Daddr:  fmt.Sprintf("%s:%d", intToIP(k.Daddr), k.Dport),

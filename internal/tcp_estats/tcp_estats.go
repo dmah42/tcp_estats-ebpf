@@ -7,7 +7,7 @@
 //go:generate go run golang.org/x/tools/cmd/stringer -type=AppVar
 //go:generate go run golang.org/x/tools/cmd/stringer -type=ExtrasVar
 
-package main
+package tcp_estats
 
 import (
 	"encoding/json"
@@ -309,5 +309,7 @@ type Record struct {
 }
 
 func (rec Record) String() string {
-	return fmt.Sprintf("%s: %s on %d with %d", key{PidTgid: rec.PidTgid, Saddr: rec.Saddr, Sport: rec.Sport, Daddr: rec.Daddr, Dport: rec.Dport}, rec.Op, rec.Var, rec.Val)
+	return fmt.Sprintf("%s: %s on %d with %d",
+		Key{PidTgid: rec.PidTgid, Saddr: rec.Saddr, Sport: rec.Sport, Daddr: rec.Daddr, Dport: rec.Dport},
+		rec.Op, rec.Var, rec.Val)
 }
