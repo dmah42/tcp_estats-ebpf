@@ -1,4 +1,4 @@
-package endian
+package main
 
 import (
 	"encoding/binary"

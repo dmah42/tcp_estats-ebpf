@@ -7,18 +7,15 @@
 //go:generate go run golang.org/x/tools/cmd/stringer -type=AppVar
 //go:generate go run golang.org/x/tools/cmd/stringer -type=ExtrasVar
 
-package tcp_estats
+package main
 
 import (
 	"flag"
 	"fmt"
 	"log"
-	"net"
 	"sort"
 	"strings"
 	"sync"
-
-	"tcp_estats-ebpf/endian"
 )
 
 var (
@@ -196,7 +193,6 @@ type Vars interface {
 
 type Table[V Vars] struct {
 	sync.RWMutex
-	// TODO: this may need to be more general or a union-like type.
 	M map[V]uint32
 }
 
@@ -231,46 +227,46 @@ func tableString[V Vars](t Table[V]) string {
 }
 
 type tables struct {
-	global     Table[GlobalVar]
-	connection Table[ConnectionVar]
-	perf       Table[PerfVar]
-	path       Table[PathVar]
-	stack      Table[StackVar]
-	app        Table[AppVar]
-	extras     Table[ExtrasVar]
+	Global     Table[GlobalVar]
+	Connection Table[ConnectionVar]
+	Perf       Table[PerfVar]
+	Path       Table[PathVar]
+	Stack      Table[StackVar]
+	App        Table[AppVar]
+	Extras     Table[ExtrasVar]
 }
 
 type Estats struct {
-	tables tables
+	Tables tables
 }
 
-func New() *Estats {
+func NewEstats() *Estats {
 	e := new(Estats)
-	e.tables.global = Table[GlobalVar]{M: make(map[GlobalVar]uint32)}
-	e.tables.connection = Table[ConnectionVar]{M: make(map[ConnectionVar]uint32)}
-	e.tables.perf = Table[PerfVar]{M: make(map[PerfVar]uint32)}
-	e.tables.path = Table[PathVar]{M: make(map[PathVar]uint32)}
-	e.tables.stack = Table[StackVar]{M: make(map[StackVar]uint32)}
-	e.tables.app = Table[AppVar]{M: make(map[AppVar]uint32)}
-	e.tables.extras = Table[ExtrasVar]{M: make(map[ExtrasVar]uint32)}
+	e.Tables.Global = Table[GlobalVar]{M: make(map[GlobalVar]uint32)}
+	e.Tables.Connection = Table[ConnectionVar]{M: make(map[ConnectionVar]uint32)}
+	e.Tables.Perf = Table[PerfVar]{M: make(map[PerfVar]uint32)}
+	e.Tables.Path = Table[PathVar]{M: make(map[PathVar]uint32)}
+	e.Tables.Stack = Table[StackVar]{M: make(map[StackVar]uint32)}
+	e.Tables.App = Table[AppVar]{M: make(map[AppVar]uint32)}
+	e.Tables.Extras = Table[ExtrasVar]{M: make(map[ExtrasVar]uint32)}
 	return e
 }
 
 func (e Estats) String() string {
 	s := "..- global -..\n"
-	s += tableString(e.tables.global) + "\n"
+	s += tableString(e.Tables.Global) + "\n"
 	s += "..- connection -..\n"
-	s += tableString(e.tables.connection) + "\n"
+	s += tableString(e.Tables.Connection) + "\n"
 	s += "..- perf -..\n"
-	s += tableString(e.tables.perf) + "\n"
+	s += tableString(e.Tables.Perf) + "\n"
 	s += "..- path -..\n"
-	s += tableString(e.tables.path) + "\n"
+	s += tableString(e.Tables.Path) + "\n"
 	s += "..- stack -..\n"
-	s += tableString(e.tables.stack) + "\n"
+	s += tableString(e.Tables.Stack) + "\n"
 	s += "..- app -..\n"
-	s += tableString(e.tables.app) + "\n"
+	s += tableString(e.Tables.App) + "\n"
 	s += "..- extras -..\n"
-	s += tableString(e.tables.extras) + "\n"
+	s += tableString(e.Tables.Extras) + "\n"
 
 	return s
 }
@@ -278,19 +274,19 @@ func (e Estats) String() string {
 func (e *Estats) GetTableForVar(v any) any {
 	switch v.(type) {
 	case GlobalVar:
-		return &e.tables.global
+		return &e.Tables.Global
 	case ConnectionVar:
-		return &e.tables.connection
+		return &e.Tables.Connection
 	case PerfVar:
-		return &e.tables.perf
+		return &e.Tables.Perf
 	case PathVar:
-		return &e.tables.path
+		return &e.Tables.Path
 	case StackVar:
-		return &e.tables.stack
+		return &e.Tables.Stack
 	case AppVar:
-		return &e.tables.app
+		return &e.Tables.App
 	case ExtrasVar:
-		return &e.tables.extras
+		return &e.Tables.Extras
 	default:
 		log.Fatalf("unknown table for var %s", v)
 		return nil
@@ -364,10 +360,4 @@ type Record struct {
 
 func (rec Record) String() string {
 	return fmt.Sprintf("[P: %d, S: %s:%d, D: %s:%d]: %s on %d with %d", rec.PidTgid, intToIP(rec.Saddr), rec.Sport, intToIP(rec.Daddr), rec.Dport, rec.Op, rec.Var, rec.Val)
-}
-
-func intToIP(num uint32) net.IP {
-	ip := make(net.IP, 4)
-	endian.Native.PutUint32(ip, num)
-	return ip
 }

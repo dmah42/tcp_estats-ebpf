@@ -1,4 +1,4 @@
-package tcp_estats
+package main
 
 import "testing"
 

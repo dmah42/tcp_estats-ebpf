@@ -1,4 +1,6 @@
-package tcp_estats
+package main
+
+import "net"
 
 type Address struct {
 	IsIPv4 bool
@@ -32,4 +34,10 @@ func (a Address) GetIPv6() uint64 {
 		panic("not IPv6")
 	}
 	return a.addr6
+}
+
+func intToIP(num uint32) net.IP {
+	ip := make(net.IP, 4)
+	Native.PutUint32(ip, num)
+	return ip
 }

@@ -1,44 +1,40 @@
-OUTPUT=tcp_estats_ebpf
+OUTPUT=bin/tcp_estats
 
 .PHONY: build
-build: gen $(OUTPUT)
-
-.PHONY: gen
-gen: probe/*.c probe/*.h tcp_estats/tcp_estats.go
-	go generate main.go
-	go generate tcp_estats/tcp_estats.go
+build: $(OUTPUT)
 
 .PHONY: sum
 sum: go.sum
 
 .PHONY: fmt
-fmt: *.go tcp_estats/*.go probe/*.c probe/*.h
-	go fmt *.go
-	go fmt tcp_estats/*.go
+fmt: *.go cmd/tcp_estats/*.go probe/*.c probe/*.h
+	go fmt cmd/tcp_estats/*.go
 	clang-format -i --style=Google probe/*.c
 	clang-format -i --style=Google probe/*.h
 
 # TODO: probe tests?
 .PHONY: test
-test: *.go tcp_estats/*.go
-	go test tcp_estats/*.go
+test: cmd/tcp_estats/*.go 
+	go test cmd/tcp_estats/*.go
 
 .PHONY: clean
 clean:
 	-@rm $(OUTPUT)
-	-@rm tcpestats_bpfe*.go
-	-@rm tcpestats_bpfe*.o
+	-@rm cmd/tcp_estats/tcp_estats_bpfe*.go
+	-@rm cmd/tcp_estats/tcp_estats_bpfe*.o
 
 .PHONY: run
 run: build test
 	sudo ./$(OUTPUT)
 
-$(OUTPUT): tcpestats_bpfel.go tcpestats_bpfeb.go main.go endian/endian.go tcp_estats/*.go
-	CGO_ENABLED=1 go build -o $@
+$(OUTPUT): cmd/tcp_estats/tcp_estats_bpfel.go cmd/tcp_estats/tcp_estats_bpfeb.go cmd/tcp_estats/*.go 
+	CGO_ENABLED=1 go build -o $@ ./cmd/tcp_estats
 
-tcpestats_bpfe%.go: probe/*.c probe/*.h
-	go generate main.go
-#	-@rm tcpestats_bpfe*.o
+cmd/tcp_estats/tcp_estats_bpfe%.go: probe/*.c probe/*.h
+	go generate cmd/tcp_estats/main.go
+
+cmd/tcp_estats/*_string.go: cmd/tcp_estats/tcp_estats.go
+	go generate cmd/tcp_estats/tcp_estats.go
 
 go.sum:
 	go mod download github.com/cilium/ebpf
