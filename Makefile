@@ -22,20 +22,21 @@ test: cmd/tcp_estats/*.go  internal/tcp_estats/*.go
 .PHONY: clean
 clean:
 	-@rm $(OUTPUT)
-	-@rm cmd/tcp_estats/tcp_estats_bpfe*.go
-	-@rm cmd/tcp_estats/tcp_estats_bpfe*.o
+	-@rm internal/tcp_estats/tcp_estats_bpfe*.go
+	-@rm internal/tcp_estats/tcp_estats_bpfe*.o
+	-@rm internal/tcp_estats/*_string.go
 
 .PHONY: run
 run: build test
 	sudo ./$(OUTPUT)
 
-$(OUTPUT): cmd/tcp_estats/tcp_estats_bpfel.go cmd/tcp_estats/tcp_estats_bpfeb.go internal/tcp_estats/*.go cmd/tcp_estats/*.go 
+$(OUTPUT): internal/tcp_estats/tcp_estats_bpfel.go internal/tcp_estats/tcp_estats_bpfeb.go internal/tcp_estats/*.go cmd/tcp_estats/*.go 
 	CGO_ENABLED=1 go build -o $@ ./cmd/tcp_estats
 
-cmd/tcp_estats/tcp_estats_bpfe%.go: probe/*.c probe/*.h
-	go generate ./cmd/tcp_estats/main.go
+internal/tcp_estats/tcp_estats_bpfe%.go: probe/*.c probe/*.h
+	go generate ./internal/tcp_estats/tcp_estats.go
 
-cmd/tcp_estats/*_string.go: internal/tcp_estats/tcp_estats.go
+internal/tcp_estats/*_string.go: internal/tcp_estats/tcp_estats.go
 	go generate ./internal/tcp_estats/tcp_estats.go
 
 go.sum:

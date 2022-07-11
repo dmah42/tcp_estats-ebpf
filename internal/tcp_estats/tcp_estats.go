@@ -8,7 +8,6 @@
 //go:generate go run golang.org/x/tools/cmd/stringer -type=ExtrasVar
 //go:generate go run github.com/cilium/ebpf/cmd/bpf2go --strip llvm-strip --cflags "-D__x86_64__ -Wno-unused-command-line-argument -Wall -Werror -O1 -I../.." tcp_estats ../../probe/tcp_estats.c
 
-
 package tcp_estats
 
 import (

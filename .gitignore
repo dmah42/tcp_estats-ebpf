@@ -8,9 +8,9 @@
 bin/
 
 # generated files
-cmd/tcp_estats/tcp_estats_bpfeb.go
-cmd/tcp_estats/tcp_estats_bpfel.go
-cmd/tcp_estats/*_string.go
+cmd/tcp_estats/tcp_estats_bpfe*.go
+cmd/tcp_estats/tcp_estats_bpfe*.o
+internal/tcp_estats/*_string.go
 
 # Test binary, built with `go test -c`
 *.test
