@@ -1,5 +1,8 @@
 OUTPUT=bin/tcp_estats
 
+.PHONY: all
+all: build
+
 .PHONY: build
 build: $(OUTPUT)
 
