@@ -1,0 +1,17 @@
+make --dry-run --keep-going --print-directory
+make: Entering directory '/home/dma/dev/tcp_estats-ebpf'
+go generate ./internal/tcp_estats/tcp_estats.go
+go generate ./internal/tcp_estats/tcp_estats.go
+ 
+go generate ./internal/tcp_estats/tcp_estats.go
+ 
+go generate ./internal/tcp_estats/tcp_estats.go
+go generate ./internal/tcp_estats/tcp_estats.go
+go generate ./internal/tcp_estats/tcp_estats.go
+go generate ./internal/tcp_estats/tcp_estats.go
+ 
+go generate ./internal/tcp_estats/tcp_estats.go
+ 
+CGO_ENABLED=1 go build -o bin/tcp_estats ./cmd/tcp_estats
+make: Leaving directory '/home/dma/dev/tcp_estats-ebpf'
+ 

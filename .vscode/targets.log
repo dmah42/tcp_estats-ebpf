@@ -1,0 +1,516 @@
+make all --print-data-base --no-builtin-variables --no-builtin-rules --question
+# GNU Make 4.3
+# Built for x86_64-pc-linux-gnu
+# Copyright (C) 1988-2020 Free Software Foundation, Inc.
+# License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+# This is free software: you are free to change and redistribute it.
+# There is NO WARRANTY, to the extent permitted by law.
+ 
+
+# Make data base, printed on Thu Jul 14 09:46:59 2022
+
+# Variables
+
+# makefile (from 'Makefile', line 1)
+OUTPUT = bin/tcp_estats
+# environment
+LC_ALL = C
+# environment
+VSCODE_CWD = /home/dma
+# default
+MAKE_COMMAND := make
+# environment
+VSCODE_HANDLES_SIGPIPE = true
+# environment
+GOPATH = /home/dma/go
+# automatic
+@D = $(patsubst %/,%,$(dir $@))
+# environment
+VSCODE_HANDLES_UNCAUGHT_ERRORS = true
+# default
+.VARIABLES := 
+# environment
+PWD = /home/dma/dev/tcp_estats-ebpf
+# automatic
+%D = $(patsubst %/,%,$(dir $%))
+# environment
+LSCOLORS = Gxfxcxdxbxegedabagacad
+# environment
+MAIL = /var/spool/mail/dma
+# environment
+OLDPWD = /home/dma
+# automatic
+^D = $(patsubst %/,%,$(dir $^))
+# automatic
+%F = $(notdir $%)
+# environment
+LANG = C
+# default
+.LOADED := 
+# default
+.INCLUDE_DIRS = /usr/include /usr/local/include /usr/include
+# makefile
+MAKEFLAGS = pqrR
+# makefile
+CURDIR := /home/dma/dev/tcp_estats-ebpf
+# environment
+APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = true
+# environment
+ZSH_TMUX_TERM = screen
+# automatic
+*D = $(patsubst %/,%,$(dir $*))
+# environment
+MFLAGS = -pqrR
+# environment
+SSH_AUTH_SOCK = /tmp/ssh-XXXXXXZm4iIG/agent.620110
+# default
+.SHELLFLAGS := -c
+# environment
+_ZSH_TMUX_FIXED_CONFIG = /home/dma/.oh-my-zsh/plugins/tmux/tmux.extra.conf
+# automatic
++D = $(patsubst %/,%,$(dir $+))
+# makefile (from 'Makefile', line 1)
+MAKEFILE_LIST := Makefile
+# automatic
+@F = $(notdir $@)
+# environment
+ZSH = /home/dma/.oh-my-zsh
+# environment
+XDG_SESSION_TYPE = tty
+# automatic
+?D = $(patsubst %/,%,$(dir $?))
+# automatic
+*F = $(notdir $*)
+# environment
+DBUS_SESSION_BUS_ADDRESS = unix:path=/run/user/1000/bus
+# automatic
+<D = $(patsubst %/,%,$(dir $<))
+# environment
+VSCODE_NLS_CONFIG = {"locale":"en","availableLanguages":{}}
+# default
+MAKE_HOST := x86_64-pc-linux-gnu
+# makefile
+SHELL = /bin/sh
+# default
+MAKECMDGOALS := all
+# environment
+DOTNET_BUNDLE_EXTRACT_BASE_DIR = /home/dma/.cache/dotnet_bundle_extract
+# environment
+SHLVL = 2
+# environment
+MAKELEVEL := 0
+# environment
+ZSH_TMUX_CONFIG = /home/dma/.tmux.conf
+# default
+MAKE = $(MAKE_COMMAND)
+# environment
+PATH = /home/dma/.vscode-server/bin/92d25e35d9bf1a6b16f7d0758f25d48ace11e5b9/bin/remote-cli:/home/dma/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/dma/.dotnet/tools:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/usr/lib/jvm/default/bin
+# default
+MAKEFILES := 
+# environment
+MOTD_SHOWN = pam
+# automatic
+^F = $(notdir $^)
+# environment
+SSH_CLIENT = 192.168.178.43 49302 22
+# automatic
+?F = $(notdir $?)
+# environment
+LS_COLORS = 
+# automatic
++F = $(notdir $+)
+# environment
+LESS = -R
+# 'override' directive
+GNUMAKEFLAGS := 
+# environment
+BROWSER = /home/dma/.vscode-server/bin/92d25e35d9bf1a6b16f7d0758f25d48ace11e5b9/bin/helpers/browser.sh
+# environment
+LOGNAME = dma
+# makefile
+.DEFAULT_GOAL := all
+# environment
+USER = dma
+# default
+MAKE_VERSION := 4.3
+# environment
+SSH_AGENT_PID = 620112
+# environment
+PAGER = less
+# environment
+VSCODE_AGENT_FOLDER = /home/dma/.vscode-server
+# environment
+_ = /usr/bin/make
+# environment
+XDG_RUNTIME_DIR = /run/user/1000
+# environment
+LC_CTYPE = 
+# environment
+VSCODE_IPC_HOOK_CLI = /run/user/1000/vscode-ipc-b2f02066-b7f1-46ab-8825-ebeee19f2735.sock
+# environment
+GOMODCACHE = /home/dma/go/pkg/mod
+# environment
+XDG_SESSION_CLASS = user
+# environment
+VSCODE_AMD_ENTRYPOINT = vs/workbench/api/node/extensionHostProcess
+# environment
+HOME = /home/dma
+# environment
+ELECTRON_RUN_AS_NODE = 1
+# environment
+XDG_SESSION_ID = 120
+# environment
+GOPROXY = https://proxy.golang.org,direct
+# default
+.RECIPEPREFIX := 
+# automatic
+<F = $(notdir $<)
+# default
+SUFFIXES := 
+# default
+.FEATURES := target-specific order-only second-expansion else-if shortest-stem undefine oneshell nocomment grouped-target extra-prereqs archives jobserver output-sync check-symlink guile load
+# environment
+CXX = clang++
+# environment
+CC = clang
+# environment
+DOTNET_ROOT = /usr/share/dotnet
+# environment
+SSH_CONNECTION = 192.168.178.43 49302 192.168.178.4 22
+# variable set hash-table stats:
+# Load=83/1024=8%, Rehash=0, Collisions=4/118=3%
+
+# Pattern-specific Variable Values
+
+# No pattern-specific variable values.
+
+# Directories
+
+# internal/tcp_estats (device 66308, inode 16550292): 23 files, no impossibilities.
+# . (device 66308, inode 16154042): 14 files, no impossibilities.
+# probe (device 66308, inode 16683734): 6 files, no impossibilities.
+# cmd/tcp_estats (device 66308, inode 16286805): 3 files, no impossibilities.
+
+ 
+# 46 files, no impossibilities in 4 directories.
+
+# Implicit Rules
+
+internal/tcp_estats/tcp_estats_bpfe%.go: probe/tcp_estats.c probe/tcp.h probe/tcp_estats.h probe/tcp_sock.h
+#  recipe to execute (from 'Makefile', line 40):
+	go generate ./internal/tcp_estats/probe.go
+
+# 1 implicit rules, 0 (0.0%) terminal.
+# Files
+
+# Not a target:
+cmd/tcp_estats/main.go:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+internal/tcp_estats/record_test.go:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+internal/tcp_estats/endian.go:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+internal/tcp_estats/extrasvar_string.go: internal/tcp_estats/tcp_estats.go
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 43):
+	go generate ./internal/tcp_estats/tcp_estats.go
+
+# Not a target:
+internal/tcp_estats/record.go:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+# Not a target:
+probe/tcp_estats.c:
+#  Implicit rule search has been done.
+#  Last modified 2022-06-21 10:22:23.517794899
+#  File has been updated.
+#  Successfully updated.
+
+internal/tcp_estats/pathvar_string.go: internal/tcp_estats/tcp_estats.go
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 43):
+	go generate ./internal/tcp_estats/tcp_estats.go
+
+# Not a target:
+probe/tcp_estats.h:
+#  Implicit rule search has been done.
+#  Last modified 2022-06-21 10:22:23.517794899
+#  File has been updated.
+#  Successfully updated.
+
+internal/tcp_estats/perfvar_string.go: internal/tcp_estats/tcp_estats.go
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 43):
+	go generate ./internal/tcp_estats/tcp_estats.go
+
+bin/tcp_estats: internal/tcp_estats/tcp_estats_bpfel.go internal/tcp_estats/tcp_estats_bpfeb.go internal/tcp_estats/address.go internal/tcp_estats/address_test.go internal/tcp_estats/appvar_string.go internal/tcp_estats/connectionvar_string.go internal/tcp_estats/db.go internal/tcp_estats/endian.go internal/tcp_estats/extrasvar_string.go internal/tcp_estats/globalvar_string.go internal/tcp_estats/operation_string.go internal/tcp_estats/pathvar_string.go internal/tcp_estats/perfvar_string.go internal/tcp_estats/probe.go internal/tcp_estats/probe_test.go internal/tcp_estats/record.go internal/tcp_estats/record_test.go internal/tcp_estats/stackvar_string.go internal/tcp_estats/tcp_estats.go internal/tcp_estats/tcp_estats_bpfeb.go internal/tcp_estats/tcp_estats_bpfel.go cmd/tcp_estats/main.go
+#  Implicit rule search has not been done.
+#  Last modified 2022-07-14 09:45:17.191718076
+#  File has been updated.
+#  Needs to be updated (-q is set).
+# variable set hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/3=0%
+#  recipe to execute (from 'Makefile', line 37):
+	CGO_ENABLED=1 go build -o $@ ./cmd/tcp_estats
+
+# Not a target:
+Makefile:
+#  Implicit rule search has been done.
+#  Last modified 2022-07-14 09:46:51.548386556
+#  File has been updated.
+#  Successfully updated.
+
+sum: go.sum
+#  Phony target (prerequisite of .PHONY).
+#  Implicit rule search has not been done.
+#  File does not exist.
+#  File has not been updated.
+
+# Not a target:
+internal/tcp_estats/tcp_estats.go:
+#  Implicit rule search has been done.
+#  Last modified 2022-07-14 09:45:10.628384619
+#  File has been updated.
+#  Successfully updated.
+
+clean:
+#  Phony target (prerequisite of .PHONY).
+#  Implicit rule search has not been done.
+#  File does not exist.
+#  File has not been updated.
+ 
+#  recipe to execute (from 'Makefile', line 27):
+	-@rm $(OUTPUT)
+	-@rm internal/tcp_estats/tcp_estats_bpfe*.go
+	-@rm internal/tcp_estats/tcp_estats_bpfe*.o
+	-@rm internal/tcp_estats/*_string.go
+
+# Not a target:
+internal/tcp_estats/probe.go:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+internal/tcp_estats/connectionvar_string.go: internal/tcp_estats/tcp_estats.go
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 43):
+	go generate ./internal/tcp_estats/tcp_estats.go
+
+# Not a target:
+internal/tcp_estats/probe_test.go:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+internal/tcp_estats/stackvar_string.go: internal/tcp_estats/tcp_estats.go
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 43):
+	go generate ./internal/tcp_estats/tcp_estats.go
+
+go.sum:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 46):
+	go mod download github.com/cilium/ebpf
+	go get github.com/ciliun/ebpf/cmd/bpf2go
+
+fmt: cmd/tcp_estats/main.go internal/tcp_estats/address.go internal/tcp_estats/address_test.go internal/tcp_estats/appvar_string.go internal/tcp_estats/connectionvar_string.go internal/tcp_estats/db.go internal/tcp_estats/endian.go internal/tcp_estats/extrasvar_string.go internal/tcp_estats/globalvar_string.go internal/tcp_estats/operation_string.go internal/tcp_estats/pathvar_string.go internal/tcp_estats/perfvar_string.go internal/tcp_estats/probe.go internal/tcp_estats/probe_test.go internal/tcp_estats/record.go internal/tcp_estats/record_test.go internal/tcp_estats/stackvar_string.go internal/tcp_estats/tcp_estats.go internal/tcp_estats/tcp_estats_bpfeb.go internal/tcp_estats/tcp_estats_bpfel.go probe/tcp_estats.c probe/tcp.h probe/tcp_estats.h probe/tcp_sock.h
+#  Phony target (prerequisite of .PHONY).
+#  Implicit rule search has not been done.
+#  File does not exist.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 14):
+	go fmt cmd/tcp_estats/*.go
+	go fmt internal/tcp_estats/*.go
+	clang-format -i --style=Google probe/*.c
+	clang-format -i --style=Google probe/*.h
+
+# Not a target:
+.DEFAULT:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+all: build
+#  Phony target (prerequisite of .PHONY).
+#  Command line target.
+#  Implicit rule search has not been done.
+#  File does not exist.
+#  File has been updated.
+#  Needs to be updated (-q is set).
+# variable set hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/3=0%
+
+run: build test
+#  Phony target (prerequisite of .PHONY).
+#  Implicit rule search has not been done.
+#  File does not exist.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 34):
+	sudo ./$(OUTPUT)
+
+# Not a target:
+internal/tcp_estats/db.go:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+build: bin/tcp_estats
+#  Phony target (prerequisite of .PHONY).
+#  Implicit rule search has not been done.
+#  File does not exist.
+#  File has been updated.
+#  Needs to be updated (-q is set).
+# variable set hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/3=0%
+
+# Not a target:
+probe/tcp.h:
+#  Implicit rule search has been done.
+#  Last modified 2022-06-21 10:22:23.517794899
+#  File has been updated.
+#  Successfully updated.
+
+test: cmd/tcp_estats/main.go internal/tcp_estats/address.go internal/tcp_estats/address_test.go internal/tcp_estats/appvar_string.go internal/tcp_estats/connectionvar_string.go internal/tcp_estats/db.go internal/tcp_estats/endian.go internal/tcp_estats/extrasvar_string.go internal/tcp_estats/globalvar_string.go internal/tcp_estats/operation_string.go internal/tcp_estats/pathvar_string.go internal/tcp_estats/perfvar_string.go internal/tcp_estats/probe.go internal/tcp_estats/probe_test.go internal/tcp_estats/record.go internal/tcp_estats/record_test.go internal/tcp_estats/stackvar_string.go internal/tcp_estats/tcp_estats.go internal/tcp_estats/tcp_estats_bpfeb.go internal/tcp_estats/tcp_estats_bpfel.go
+#  Phony target (prerequisite of .PHONY).
+#  Implicit rule search has not been done.
+#  File does not exist.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 22):
+ 
+	go test ./internal/tcp_estats
+	go test ./cmd/tcp_estats
+
+internal/tcp_estats/tcp_estats_bpfeb.go: probe/tcp_estats.c probe/tcp.h probe/tcp_estats.h probe/tcp_sock.h
+#  Implicit rule search has been done.
+#  Implicit/static pattern stem: 'b'
+#  Last modified 2022-07-14 09:31:39.655035894
+#  File has been updated.
+#  Successfully updated.
+#  recipe to execute (from 'Makefile', line 40):
+	go generate ./internal/tcp_estats/probe.go
+
+internal/tcp_estats/operation_string.go: internal/tcp_estats/tcp_estats.go
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 43):
+	go generate ./internal/tcp_estats/tcp_estats.go
+
+# Not a target:
+probe/tcp_sock.h:
+#  Implicit rule search has been done.
+#  Last modified 2022-06-21 10:22:23.517794899
+#  File has been updated.
+#  Successfully updated.
+
+internal/tcp_estats/globalvar_string.go: internal/tcp_estats/tcp_estats.go
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'Makefile', line 43):
+	go generate ./internal/tcp_estats/tcp_estats.go
+
+# Not a target:
+.SUFFIXES:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+.PHONY: all build sum fmt test clean run
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+internal/tcp_estats/appvar_string.go: internal/tcp_estats/tcp_estats.go
+#  Implicit rule search has not been done.
+#  Implicit/static pattern stem: ''
+#  Last modified 2022-07-14 09:31:36.948369176
+#  File has been updated.
+#  Needs to be updated (-q is set).
+# automatic
+# @ := internal/tcp_estats/appvar_string.go
+# automatic
+# * := 
+# automatic
+# < := internal/tcp_estats/tcp_estats.go
+# automatic
+# + := internal/tcp_estats/tcp_estats.go
+# automatic
+# % := 
+# automatic
+# ^ := internal/tcp_estats/tcp_estats.go
+# automatic
+# ? := internal/tcp_estats/tcp_estats.go
+# automatic
+# | := 
+# variable set hash-table stats:
+# Load=8/32=25%, Rehash=0, Collisions=1/11=9%
+#  recipe to execute (from 'Makefile', line 43):
+	go generate ./internal/tcp_estats/tcp_estats.go
+
+# Not a target:
+internal/tcp_estats/address.go:
+#  Implicit rule search has been done.
+#  Last modified 2022-07-14 09:30:00.67503402
+#  File has been updated.
+#  Successfully updated.
+
+internal/tcp_estats/tcp_estats_bpfel.go: probe/tcp_estats.c probe/tcp.h probe/tcp_estats.h probe/tcp_sock.h
+#  Implicit rule search has been done.
+#  Implicit/static pattern stem: 'l'
+#  Last modified 2022-07-14 09:31:39.155035884
+#  File has been updated.
+#  Successfully updated.
+#  recipe to execute (from 'Makefile', line 40):
+	go generate ./internal/tcp_estats/probe.go
+
+# Not a target:
+internal/tcp_estats/address_test.go:
+#  Implicit rule search has been done.
+#  Last modified 2022-06-21 10:22:23.517794899
+#  File has been updated.
+#  Successfully updated.
+ 
+
+# files hash-table stats:
+# Load=37/1024=4%, Rehash=0, Collisions=1/168=1%
+# VPATH Search Paths
+
+# No 'vpath' search paths.
+
+# No general ('VPATH' variable) search path.
+
+# strcache buffers: 1 (0) / strings = 82 / storage = 1439 B / avg = 17 B
+# current buf: size = 8162 B / used = 1439 B / count = 82 / avg = 17 B
+
+# strcache performance: lookups = 209 / hit rate = 60%
+# hash-table stats:
+# Load=82/8192=1%, Rehash=0, Collisions=5/209=2%
+# Finished Make data base on Thu Jul 14 09:46:59 2022
+
+ 
