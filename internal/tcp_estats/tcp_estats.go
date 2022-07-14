@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/ringbuf"
@@ -15,14 +14,13 @@ import (
 
 var (
 	estats_db *DB
+
+	removeMemlock = func() error {
+		return rlimit.RemoveMemlock()
+	}
 )
 
 func init() {
-	if err := rlimit.RemoveMemlock(); err != nil {
-		log.Fatalf("locking memory: %v", err)
-	}
-
-	estats_db = newDB()
 }
 
 type TcpEstats struct {
@@ -159,6 +157,11 @@ func (t *TcpEstats) createRingBuffers() error {
 }
 
 func New() (*TcpEstats, error) {
+	if err := removeMemlock(); err != nil {
+		return nil, err
+	}
+
+	estats_db = newDB()
 	t := TcpEstats{}
 
 	// load pre-compiled programs into the kernel

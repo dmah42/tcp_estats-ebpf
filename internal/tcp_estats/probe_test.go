@@ -5,6 +5,10 @@ import (
 	"testing"
 )
 
+func init() {
+	removeMemlock = func() error { return nil }
+}
+
 func TestTableMarshal(t *testing.T) {
 	// setup
 	tab := Table{M: make(map[string]uint32)}

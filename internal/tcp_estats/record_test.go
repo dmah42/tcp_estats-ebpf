@@ -5,6 +5,10 @@ import (
 	"testing"
 )
 
+func init() {
+	removeMemlock = func() error { return nil }
+}
+
 func TestString(t *testing.T) {
 	got := Record{
 		PidTgid: 12345,

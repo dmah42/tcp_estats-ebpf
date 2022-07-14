@@ -5,6 +5,10 @@ import (
 	"testing"
 )
 
+func init() {
+	removeMemlock = func() error { return nil }
+}
+
 func TestIntToIP(t *testing.T) {
 	got := intToIP(16777343)
 	want := net.IPv4(127, 0, 0, 1).To4()
