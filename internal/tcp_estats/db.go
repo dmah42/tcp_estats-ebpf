@@ -7,7 +7,7 @@ import (
 )
 
 // Extracted from Record
-type Key struct {
+type key struct {
 	PidTgid uint64
 	Saddr   uint32
 	Daddr   uint32
@@ -15,21 +15,21 @@ type Key struct {
 	Dport   uint16
 }
 
-func (k Key) String() string {
+func (k key) String() string {
 	return fmt.Sprintf("[P: %d, S: %s:%d, D: %s:%d]", k.PidTgid, intToIP(k.Saddr), k.Sport, intToIP(k.Daddr), k.Dport)
 }
 
 type DB struct {
 	sync.RWMutex
-	M map[Key]*Estats
+	m map[key]*Estats
 }
 
-func NewDB() *DB {
-	db := new(DB)
+func newDB() *DB {
+	db := DB{}
 	db.Lock()
-	db.M = make(map[Key]*Estats)
+	db.m = make(map[key]*Estats)
 	db.Unlock()
-	return db
+	return &db
 }
 
 type export struct {
@@ -44,7 +44,7 @@ func (d *DB) MarshalJSON() ([]byte, error) {
 
 	var ex []export
 
-	for k, estats := range d.M {
+	for k, estats := range d.m {
 		ex = append(ex, export{
 			Saddr:  fmt.Sprintf("%s:%d", intToIP(k.Saddr), k.Sport),
 			Daddr:  fmt.Sprintf("%s:%d", intToIP(k.Daddr), k.Dport),

@@ -5,13 +5,13 @@ import (
 	"unsafe"
 )
 
-var Native binary.ByteOrder
+var native binary.ByteOrder
 
 func init() {
 	if isBigEndian() {
-		Native = binary.BigEndian
+		native = binary.BigEndian
 	} else {
-		Native = binary.LittleEndian
+		native = binary.LittleEndian
 	}
 }
 

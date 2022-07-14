@@ -39,11 +39,11 @@ func (a Address) GetIPv6() uint64 {
 // assumes ipv4
 func intToIP(num uint32) net.IP {
 	ip := make(net.IP, 4)
-	Native.PutUint32(ip, num)
+	native.PutUint32(ip, num)
 	return ip
 }
 
 // assumes ipv4
 func ipToInt(ip net.IP) uint32 {
-	return Native.Uint32(ip.To4())
+	return native.Uint32(ip.To4())
 }

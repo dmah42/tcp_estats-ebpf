@@ -16,6 +16,6 @@ type Record struct {
 
 func (rec Record) String() string {
 	return fmt.Sprintf("%s: %s on %d with %d",
-		Key{PidTgid: rec.PidTgid, Saddr: rec.Saddr, Sport: rec.Sport, Daddr: rec.Daddr, Dport: rec.Dport},
+		key{PidTgid: rec.PidTgid, Saddr: rec.Saddr, Sport: rec.Sport, Daddr: rec.Daddr, Dport: rec.Dport},
 		rec.Op, rec.Var, rec.Val)
 }

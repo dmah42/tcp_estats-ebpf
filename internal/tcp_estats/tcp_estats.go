@@ -1,298 +1,227 @@
-//go:generate go run golang.org/x/tools/cmd/stringer -type=Operation
-//go:generate go run golang.org/x/tools/cmd/stringer -type=GlobalVar
-//go:generate go run golang.org/x/tools/cmd/stringer -type=ConnectionVar
-//go:generate go run golang.org/x/tools/cmd/stringer -type=PathVar
-//go:generate go run golang.org/x/tools/cmd/stringer -type=PerfVar
-//go:generate go run golang.org/x/tools/cmd/stringer -type=StackVar
-//go:generate go run golang.org/x/tools/cmd/stringer -type=AppVar
-//go:generate go run golang.org/x/tools/cmd/stringer -type=ExtrasVar
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go --strip llvm-strip --cflags "-D__x86_64__ -Wno-unused-command-line-argument -Wall -Werror -O1 -I../.." tcp_estats ../../probe/tcp_estats.c
-
 package tcp_estats
 
 import (
+	"bytes"
+	"encoding/binary"
 	"encoding/json"
-	"flag"
+	"errors"
 	"fmt"
 	"log"
-	"sync"
+
+	"github.com/cilium/ebpf/link"
+	"github.com/cilium/ebpf/ringbuf"
+	"github.com/cilium/ebpf/rlimit"
 )
 
 var (
-	verbose = flag.Bool("verbose", false, "extra logging if set to true")
+	estats_db *DB
 )
 
-type Operation uint32
-
-const (
-	OPERATION_SET Operation = iota
-	OPERATION_ADD
-	OPERATION_SUB
-	OPERATION_MAX
-	OPERATION_MIN
-)
-
-type GlobalVar uint32
-
-const (
-	GLOBAL_TABLE_LIMSTATE GlobalVar = iota
-	GLOBAL_TABLE_LIMSTATE_TS
-	GLOBAL_TABLE_START_TS
-	GLOBAL_TABLE_CURRENT_TS
-	GLOBAL_TABLE_START_TV
-)
-
-type ConnectionVar uint32
-
-const (
-	CONNECTION_TABLE_ADDRESS_TYPE ConnectionVar = iota
-	CONNECTION_TABLE_LOCAL_ADDRESS
-	CONNECTION_TABLE_REMOTE_ADDRESS
-	CONNECTION_TABLE_LOCAL_PORT
-	CONNECTION_TABLE_REMOTE_PORT
-)
-
-type PerfVar uint32
-
-const (
-	PERF_TABLE_SEGSOUT PerfVar = iota
-	PERF_TABLE_DATASEGSOUT
-	PERF_TABLE_DATAOCTETSOUT // u64
-	PERF_TABLE_SEGSRETRANS
-	PERF_TABLE_OCTETSRETRANS
-	PERF_TABLE_SEGSIN
-	PERF_TABLE_DATASEGSIN
-	PERF_TABLE_DATAOCTETSIN // u64
-	PERF_TABLE_NORMALRTTM
-	PERF_TABLE_HIGHRTTM
-	/*		ElapsedSecs */
-	/*		ElapsedMicroSecs */
-	/*		StartTimeStamp */
-	/*		CurMSS */
-	/*		PipeSize */
-	PERF_TABLE_MAXPIPESIZE
-	/*		SmoothedRTT */
-	/*		CurRTO */
-	PERF_TABLE_CONGSIGNALS
-	/*		CurCwnd */
-	/*		CurSsthresh */
-	PERF_TABLE_TIMEOUTS
-	/*		CurRwinSent */
-	PERF_TABLE_MAXRWINSENT
-	PERF_TABLE_ZERORWINSENT
-	/*		CurRwinRcvd */
-	PERF_TABLE_MAXRWINRCVD
-	PERF_TABLE_ZERORWINRCVD
-	/*		SndLimTransRwin */
-	/*		SndLimTransCwnd */
-	/*		SndLimTransSnd */
-	/*		SndLimTimeRwin */
-	/*		SndLimTimeCwnd */
-	/*		SndLimTimeSnd */
-	// TODO: figure this out
-	//u32		snd_lim_trans[TCP_ESTATS_SNDLIM_NSTATES];
-	//u32		snd_lim_time[TCP_ESTATS_SNDLIM_NSTATES];
-
-)
-
-type PathVar uint32
-
-const (
-	PATH_TABLE_NONRECOVDAEPISODES PathVar = iota
-	PATH_TABLE_SUMOCTETSREORDERED
-	PATH_TABLE_NONRECOVDA
-	PATH_TABLE_SAMPLERTT
-	PATH_TABLE_MAXRTT
-	PATH_TABLE_MINRTT
-	PATH_TABLE_SUMRTT
-	PATH_TABLE_COUNTRTT
-	PATH_TABLE_MAXRTO
-	PATH_TABLE_MINRTO
-	PATH_TABLE_PTTL
-	PATH_TABLE_PTOSIN
-	PATH_TABLE_PRECONGSUMCWND
-	PATH_TABLE_PRECONGSUMRTT
-	PATH_TABLE_POSTCONGSUMRTT
-	PATH_TABLE_POSTCONGCOUNTRTT
-	PATH_TABLE_ECNSIGNALS
-	PATH_TABLE_DUPACKEPISODES
-	PATH_TABLE_DUPACKSOUT
-	PATH_TABLE_CERCVD
-	PATH_TABLE_ECESENT
-)
-
-type StackVar uint32
-
-const (
-	STACK_TABLE_ACTIVEOPEN StackVar = iota
-	STACK_TABLE_MAXSSCWND
-	STACK_TABLE_MAXCACWND
-	STACK_TABLE_MAXSSTHRESH
-	STACK_TABLE_MINSSTHRESH
-	STACK_TABLE_DUPACKSIN
-	STACK_TABLE_SPURIOUSFRDETECTED
-	STACK_TABLE_SPURIOUSRTODETECTED
-	STACK_TABLE_SOFTERRORS
-	STACK_TABLE_SOFTERRORREASON
-	STACK_TABLE_SLOWSTART
-	STACK_TABLE_CONGAVOID
-	STACK_TABLE_OTHERREDUCTIONS
-	STACK_TABLE_CONGOVERCOUNT
-	STACK_TABLE_FASTRETRAN
-	STACK_TABLE_SUBSEQUENTTIMEOUTS
-	STACK_TABLE_ABRUPTTIMEOUTS
-	STACK_TABLE_SACKSRCVD
-	STACK_TABLE_SACKBLOCKSRCVD
-	STACK_TABLE_SENDSTALL
-	STACK_TABLE_DSACKDUPS
-	STACK_TABLE_MAXMSS
-	STACK_TABLE_MINMSS
-	STACK_TABLE_SNDINITIAL
-	STACK_TABLE_RECINITIAL
-	STACK_TABLE_CURRETXQUEUE
-	STACK_TABLE_MAXRETXQUEUE
-	STACK_TABLE_MAXREASMQUEUE
-	STACK_TABLE_EARLYRETRANS
-	STACK_TABLE_EARLYRETRANSDELAY
-)
-
-type AppVar uint32
-
-const (
-	APP_TABLE_SNDMAX AppVar = iota
-	APP_TABLE_THRUOCTETSACKED
-	APP_TABLE_THRUOCTETSRECEIVED
-	APP_TABLE_MAXAPPWQUEUE
-	APP_TABLE_MAXAPPRQUEUE
-)
-
-type ExtrasVar uint32
-
-const (
-	EXTRAS_TABLE_OTHERREDUCTIONSCV ExtrasVar = iota
-	EXTRAS_TABLE_OTHERREDUCTIONSCM
-	EXTRAS_TABLE_PRIORITY
-)
-
-type SndLimState int
-
-const (
-	SNDLIM_NONE SndLimState = iota - 1
-	SNDLIM_SENDER
-	SNDLIM_CWND
-	SNDLIM_RWIN
-	SNDLIM_STARTUP
-	SNDLIM_TSODEFER
-	SNDLIM_PACE
-)
-
-type Vars interface {
-	GlobalVar | ConnectionVar | PerfVar | PathVar |
-		StackVar | AppVar | ExtrasVar
-}
-
-type Table struct {
-	sync.RWMutex
-	M map[string]uint32
-}
-
-type tables struct {
-	Global, Connection, Perf, Path, Stack, App, Extras Table
-}
-
-type Estats struct {
-	Tables tables
-}
-
-func NewEstats() *Estats {
-	e := new(Estats)
-	e.Tables.Global = Table{M: make(map[string]uint32)}
-	e.Tables.Connection = Table{M: make(map[string]uint32)}
-	e.Tables.Perf = Table{M: make(map[string]uint32)}
-	e.Tables.Path = Table{M: make(map[string]uint32)}
-	e.Tables.Stack = Table{M: make(map[string]uint32)}
-	e.Tables.App = Table{M: make(map[string]uint32)}
-	e.Tables.Extras = Table{M: make(map[string]uint32)}
-	return e
-}
-
-func (e Estats) MarshalJSON() ([]byte, error) {
-	return json.Marshal(e.Tables)
-}
-
-func (e *Estats) GetTableForVar(v any) any {
-	switch v.(type) {
-	case GlobalVar:
-		return &e.Tables.Global
-	case ConnectionVar:
-		return &e.Tables.Connection
-	case PerfVar:
-		return &e.Tables.Perf
-	case PathVar:
-		return &e.Tables.Path
-	case StackVar:
-		return &e.Tables.Stack
-	case AppVar:
-		return &e.Tables.App
-	case ExtrasVar:
-		return &e.Tables.Extras
-	default:
-		log.Fatalf("unknown table for var %s", v)
-		return nil
+func init() {
+	if err := rlimit.RemoveMemlock(); err != nil {
+		log.Fatalf("locking memory: %v", err)
 	}
+
+	estats_db = newDB()
 }
 
-func max[T int | uint32](x, y T) T {
-	if x < y {
-		return y
-	}
-	return x
+type TcpEstats struct {
+	objs                                                             tcp_estatsObjects
+	createActive, createInactive, updateSegrecv, updateFinishSegrecv link.Link
+	globalRd, connRd, perfRd, pathRd, stackRd, appRd, extrasRd       *ringbuf.Reader
 }
 
-func min[T int | uint32](x, y T) T {
-	if x > y {
-		return y
+func (t *TcpEstats) createProgramLinks() error {
+	var err error
+	t.createActive, err = link.AttachTracing(link.TracingOptions{
+		Program: t.objs.tcp_estatsPrograms.TcpEstatsCreateActive,
+	})
+	if err != nil {
+		return fmt.Errorf("attaching tracing: %v", err)
 	}
-	return x
+
+	t.createInactive, err = link.AttachTracing(link.TracingOptions{
+		Program: t.objs.tcp_estatsPrograms.TcpEstatsCreateInactive,
+	})
+	if err != nil {
+		return fmt.Errorf("attaching tracing: %v", err)
+	}
+
+	t.updateSegrecv, err = link.AttachTracing(link.TracingOptions{
+		Program: t.objs.tcp_estatsPrograms.TcpEstatsUpdateSegrecv,
+	})
+	if err != nil {
+		return fmt.Errorf("attaching tracing: %v", err)
+	}
+
+	t.updateFinishSegrecv, err = link.AttachTracing(link.TracingOptions{
+		Program: t.objs.tcp_estatsPrograms.TcpEstatsUpdateFinishSegrecv,
+	})
+	if err != nil {
+		return fmt.Errorf("attaching tracing: %v", err)
+	}
+	// TODO: finish linking all the programs
+
+	return nil
 }
 
-// You may wonder why this isn't declared as a method on Estats.
-// Generics don't work on methods, only functions.
-func DoOp[V Vars](e *Estats, op Operation, v V, val uint32) {
-	t := e.GetTableForVar(v).(*Table)
-	t.RLock()
-	defer t.RUnlock()
+func (t *TcpEstats) createRingBuffers() error {
+	var err error
 
-	vs := fmt.Sprintf("%s", v)
-
-	if *verbose {
-		log.Printf("DoOp: %s %s %d\n", op, v, val)
+	t.globalRd, err = ringbuf.NewReader(t.objs.tcp_estatsMaps.GlobalTable)
+	if err != nil {
+		return fmt.Errorf("opening global table reader: %v", err)
 	}
-	switch op {
-	case OPERATION_SET:
-		if *verbose {
-			log.Printf(" . setting %s to %d\n", v, val)
+
+	t.connRd, err = ringbuf.NewReader(t.objs.tcp_estatsMaps.ConnectionTable)
+	if err != nil {
+		return fmt.Errorf("opening connection table reader: %v", err)
+	}
+
+	t.perfRd, err = ringbuf.NewReader(t.objs.tcp_estatsMaps.PerfTable)
+	if err != nil {
+		return fmt.Errorf("opening perf table reader: %v", err)
+	}
+
+	t.pathRd, err = ringbuf.NewReader(t.objs.tcp_estatsMaps.PathTable)
+	if err != nil {
+		return fmt.Errorf("opening path table reader: %v", err)
+	}
+
+	t.stackRd, err = ringbuf.NewReader(t.objs.tcp_estatsMaps.StackTable)
+	if err != nil {
+		return fmt.Errorf("opening stack table reader: %v", err)
+	}
+
+	t.appRd, err = ringbuf.NewReader(t.objs.tcp_estatsMaps.AppTable)
+	if err != nil {
+		return fmt.Errorf("opening app table reader: %v", err)
+	}
+
+	t.extrasRd, err = ringbuf.NewReader(t.objs.tcp_estatsMaps.ExtrasTable)
+	if err != nil {
+		return fmt.Errorf("opening extras table reader: %v", err)
+	}
+
+	return nil
+}
+
+func New() (*TcpEstats, error) {
+	t := TcpEstats{}
+
+	// load pre-compiled programs into the kernel
+	t.objs = tcp_estatsObjects{}
+	if err := loadTcp_estatsObjects(&t.objs, nil); err != nil {
+		return nil, fmt.Errorf("loading objects: %v", err)
+	}
+
+	if err := t.createProgramLinks(); err != nil {
+		return nil, err
+	}
+
+	if err := t.createRingBuffers(); err != nil {
+		return nil, err
+	}
+
+	return &t, nil
+}
+
+func (t *TcpEstats) Close() error {
+	// TODO: consider multiple errors instead of stopping if one errors.
+	if err := t.globalRd.Close(); err != nil {
+		return err
+	}
+	if err := t.connRd.Close(); err != nil {
+		return err
+	}
+	if err := t.pathRd.Close(); err != nil {
+		return err
+	}
+	if err := t.perfRd.Close(); err != nil {
+		return err
+	}
+	if err := t.stackRd.Close(); err != nil {
+		return err
+	}
+	if err := t.appRd.Close(); err != nil {
+		return err
+	}
+	if err := t.extrasRd.Close(); err != nil {
+		return err
+	}
+
+	if err := t.createActive.Close(); err != nil {
+		return err
+	}
+	if err := t.createInactive.Close(); err != nil {
+		return err
+	}
+	if err := t.updateSegrecv.Close(); err != nil {
+		return err
+	}
+	if err := t.updateFinishSegrecv.Close(); err != nil {
+		return err
+	}
+
+	if err := t.objs.Close(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (t *TcpEstats) Run() {
+	go readLoop[GlobalVar](t.globalRd)
+	go readLoop[ConnectionVar](t.connRd)
+	go readLoop[PerfVar](t.perfRd)
+	go readLoop[PathVar](t.pathRd)
+	go readLoop[StackVar](t.stackRd)
+	go readLoop[AppVar](t.appRd)
+	go readLoop[ExtrasVar](t.extrasRd)
+}
+
+func (t *TcpEstats) Dump() ([]byte, error) {
+	return json.MarshalIndent(estats_db, "", "  ")
+}
+
+func readLoop[V Vars](rd *ringbuf.Reader) {
+	var record Record
+	for {
+		item, err := rd.Read()
+		if err != nil {
+			if errors.Is(err, ringbuf.ErrClosed) {
+				// log.Println("received signal, exiting loop..")
+				return
+			}
+			continue
 		}
-		t.M[vs] = val
-	case OPERATION_ADD:
-		if *verbose {
-			log.Printf(" . adding %s to %d\n", v, val)
+
+		// parse to structure
+		if err := binary.Read(bytes.NewBuffer(item.RawSample), native, &record); err != nil {
+			//log.Printf("parsing entry: %v", err)
+			continue
 		}
-		t.M[vs] += val
-	case OPERATION_SUB:
-		if *verbose {
-			log.Printf(" . subtracting %d from %s\n", val, v)
+
+		// There might be a way to get away with a RLock here followed
+		// by a Lock in the unlikely case we need to insert, but just taking
+		// the more expensive lock is easier.
+		estats_db.Lock()
+
+		k := key{
+			PidTgid: record.PidTgid,
+			Saddr:   record.Saddr,
+			Daddr:   record.Daddr,
+			Sport:   record.Sport,
+			Dport:   record.Dport,
 		}
-		t.M[vs] -= val
-	case OPERATION_MAX:
-		if *verbose {
-			log.Printf(" . setting %s to max of %d and %d\n", v, t.M[vs], val)
+
+		e, ok := estats_db.m[k]
+		if !ok {
+			e = newEstats()
+			estats_db.m[k] = e
 		}
-		t.M[vs] = max(t.M[vs], val)
-	case OPERATION_MIN:
-		if *verbose {
-			log.Printf(" . setting %s to min of %d and %d\n", v, t.M[vs], val)
-		}
-		t.M[vs] = min(t.M[vs], val)
+		estats_db.Unlock()
+
+		doOp[V](e, record.Op, V(record.Var), record.Val)
 	}
 }

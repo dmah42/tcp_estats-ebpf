@@ -34,7 +34,7 @@ $(OUTPUT): internal/tcp_estats/tcp_estats_bpfel.go internal/tcp_estats/tcp_estat
 	CGO_ENABLED=1 go build -o $@ ./cmd/tcp_estats
 
 internal/tcp_estats/tcp_estats_bpfe%.go: probe/*.c probe/*.h
-	go generate ./internal/tcp_estats/tcp_estats.go
+	go generate ./internal/tcp_estats/probe.go
 
 internal/tcp_estats/*_string.go: internal/tcp_estats/tcp_estats.go
 	go generate ./internal/tcp_estats/tcp_estats.go
