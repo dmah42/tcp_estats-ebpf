@@ -26,9 +26,13 @@ func init() {
 }
 
 type TcpEstats struct {
-	objs                                                             tcp_estatsObjects
-	createActive, createInactive, updateSegrecv, updateFinishSegrecv link.Link
-	globalRd, connRd, perfRd, pathRd, stackRd, appRd, extrasRd       *ringbuf.Reader
+	objs                                                       tcp_estatsObjects
+	createActive, createInactive                               link.Link
+	updateSegrecv, updateSegsend, updateFinishSegrecv          link.Link
+	dataRecv, dataQueueOfo                                     link.Link
+	rttEstimator, enterLoss, enterCwr                          link.Link
+	fastretransAlert                                           link.Link
+	globalRd, connRd, perfRd, pathRd, stackRd, appRd, extrasRd *ringbuf.Reader
 }
 
 func (t *TcpEstats) createProgramLinks() error {
@@ -54,8 +58,50 @@ func (t *TcpEstats) createProgramLinks() error {
 		return fmt.Errorf("attaching tracing: %v", err)
 	}
 
+	t.updateSegsend, err = link.AttachTracing(link.TracingOptions{
+		Program: t.objs.tcp_estatsPrograms.TcpEstatsUpdateSegsend,
+	})
+	if err != nil {
+		return fmt.Errorf("attaching tracing: %v", err)
+	}
+
 	t.updateFinishSegrecv, err = link.AttachTracing(link.TracingOptions{
 		Program: t.objs.tcp_estatsPrograms.TcpEstatsUpdateFinishSegrecv,
+	})
+	if err != nil {
+		return fmt.Errorf("attaching tracing: %v", err)
+	}
+
+	t.dataRecv, err = link.AttachTracing(link.TracingOptions{
+		Program: t.objs.tcp_estatsPrograms.TcpEventDataRecv,
+	})
+	if err != nil {
+		return fmt.Errorf("attaching tracing: %v", err)
+	}
+
+	t.dataQueueOfo, err = link.AttachTracing(link.TracingOptions{
+		Program: t.objs.tcp_estatsPrograms.TcpDataQueueOfo,
+	})
+	if err != nil {
+		return fmt.Errorf("attaching tracing: %v", err)
+	}
+
+	t.rttEstimator, err = link.AttachTracing(link.TracingOptions{
+		Program: t.objs.tcp_estatsPrograms.TcpRttEstimator,
+	})
+	if err != nil {
+		return fmt.Errorf("attaching tracing: %v", err)
+	}
+
+	t.enterLoss, err = link.AttachTracing(link.TracingOptions{
+		Program: t.objs.tcp_estatsPrograms.TcpEnterLoss,
+	})
+	if err != nil {
+		return fmt.Errorf("attaching tracing: %v", err)
+	}
+
+	t.enterCwr, err = link.AttachTracing(link.TracingOptions{
+		Program: t.objs.tcp_estatsPrograms.TcpEnterCwr,
 	})
 	if err != nil {
 		return fmt.Errorf("attaching tracing: %v", err)
@@ -159,7 +205,25 @@ func (t *TcpEstats) Close() error {
 	if err := t.updateSegrecv.Close(); err != nil {
 		return err
 	}
+	if err := t.updateSegsend.Close(); err != nil {
+		return err
+	}
 	if err := t.updateFinishSegrecv.Close(); err != nil {
+		return err
+	}
+	if err := t.dataRecv.Close(); err != nil {
+		return err
+	}
+	if err := t.dataQueueOfo.Close(); err != nil {
+		return err
+	}
+	if err := t.rttEstimator.Close(); err != nil {
+		return err
+	}
+	if err := t.enterLoss.Close(); err != nil {
+		return err
+	}
+	if err := t.enterCwr.Close(); err != nil {
 		return err
 	}
 
