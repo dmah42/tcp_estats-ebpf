@@ -77,12 +77,14 @@ func (t *TcpEstats) createProgramLinks() error {
 		return fmt.Errorf("attaching tracing [TcpEventDataRecv]: %v", err)
 	}
 
+	/*
 	t.dataQueueOfo, err = link.AttachTracing(link.TracingOptions{
 		Program: t.objs.tcp_estatsPrograms.TcpDataQueueOfo,
 	})
 	if err != nil {
 		return fmt.Errorf("attaching tracing [TcpDataQueueOfo]: %v", err)
 	}
+	*/
 
 	t.rttEstimator, err = link.AttachTracing(link.TracingOptions{
 		Program: t.objs.tcp_estatsPrograms.TcpRttEstimator,

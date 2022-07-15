@@ -449,6 +449,7 @@ int BPF_PROG(tcp_event_data_recv, struct sock *sk, struct __sk_buff *skb) {
   return TCP_ECN_check_ce(&key, &tp, skb);
 }
 
+/*
 SEC("fentry/tcp_data_queue_ofo")
 int BPF_PROG(tcp_data_queue_ofo, struct sock *sk, struct __sk_buff *skb) {
   if (!sk) return 0;
@@ -467,6 +468,7 @@ int BPF_PROG(tcp_data_queue_ofo, struct sock *sk, struct __sk_buff *skb) {
 
   return TCP_ECN_check_ce(&key, &tp, skb);
 }
+*/
 
 SEC("fentry/tcp_rtt_estimator")
 int BPF_PROG(tcp_rtt_estimator, struct sock *sk, long mrtt_us) {
